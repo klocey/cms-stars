@@ -9,7 +9,6 @@ import pandas as pd
 import plotly
 import plotly.graph_objects as go
 import plotly.express as px
-from plotly.colors import n_colors
 import warnings
 import sys
 import re
@@ -2508,5 +2507,5 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, sele
 
 # Run the server
 if __name__ == "__main__":
-    app.run_server(host='0.0.0.0', debug = False) # modified to run on linux server
+    app.run_server(host='0.0.0.0', debug = True) # modified to run on linux server
 
