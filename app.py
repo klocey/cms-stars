@@ -16,14 +16,8 @@ import csv
 import math
 import random
 from datetime import datetime
-#import timeit
-
-#import urllib
 import numpy as np
-#import statsmodels.api as sm
 from scipy import stats
-#from sklearn.preprocessing import PolynomialFeatures
-#from statsmodels.stats.outliers_influence import summary_table
 
 px.set_mapbox_access_token('pk.eyJ1Ijoia2xvY2V5IiwiYSI6ImNrYm9uaWhoYjI0ZDcycW56ZWExODRmYzcifQ.Mb27BYst186G4r5fjju6Pw')
 
@@ -108,26 +102,14 @@ feature_dict['Stars Domains'] = ['Patient Experience',
                                  'Timely and Effective Care',
                                 ]
 
-feature_dict['Safety of Care'] = ['HAI_1_DEN_VOL',
-                                  'HAI_2_DEN_VOL',
-                                  'HAI_3_DEN_VOL',
-                                  'HAI_4_DEN_VOL',
-                                  'HAI_5_DEN_VOL',
-                                  'HAI_6_DEN_VOL',
-                                  'HAI_1_DEN_PRED',
-                                  'HAI_2_DEN_PRED',
-                                  'HAI_3_DEN_PRED',
-                                  'HAI_4_DEN_PRED',
-                                  'HAI_5_DEN_PRED',
-                                  'HAI_6_DEN_PRED',
-                                  'HAI_1',
+feature_dict['Safety of Care'] = ['HAI_1',
                                   'HAI_2',
                                   'HAI_3',
                                   'HAI_4',
                                   'HAI_5',
                                   'HAI_6',
-                                  'COMP_HIP_KNEE_DEN',
                                   'COMP_HIP_KNEE',
+                                  'PSI_90_SAFETY',
                                  ]
 
 feature_dict['Readmission'] = ['READM_30_HOSP_WIDE',
@@ -137,23 +119,11 @@ feature_dict['Readmission'] = ['READM_30_HOSP_WIDE',
                                'EDAC_30_AMI',
                                'EDAC_30_PN',
                                'READM_30_CABG',
-                               'READM_30_CABG_DEN',
-                               'READM_30_HOSP_WIDE_DEN',
-                               'READM_30_HIP_KNEE_DEN',
-                               'EDAC_30_HF_DEN',
-                               'READM_30_COPD_DEN',
-                               'EDAC_30_AMI_DEN',
-                               'EDAC_30_PN_DEN',
                                'OP_32',
-                               'OP_32_DEN',
                                'OP_35_ADM',
-                               'OP_35_ADM_DEN',
                                'OP_35_ED',
-                               'OP_35_ED_DEN',
                                'OP_36',
-                               'OP_36_DEN',
-                               'PSI_90_SAFETY',
-                               'PSI_90_SAFETY_DEN',
+                               
                               ]
 
 feature_dict['Mortality'] = ['MORT_30_STK',
@@ -161,15 +131,8 @@ feature_dict['Mortality'] = ['MORT_30_STK',
                              'MORT_30_HF',
                              'MORT_30_COPD',
                              'MORT_30_AMI',
-                             'MORT_30_STK_DEN',
-                             'MORT_30_PN_DEN',
-                             'MORT_30_HF_DEN',
-                             'MORT_30_COPD_DEN',
-                             'MORT_30_AMI_DEN',
                              'MORT_30_CABG',
-                             'MORT_30_CABG_DEN',
                              'PSI_4_SURG_COMP',
-                             'PSI_4_SURG_COMP_DEN',
                             ]
 
 
@@ -181,41 +144,26 @@ feature_dict['Patient Experience'] = ['H_COMP_1_STAR_RATING',
                                       'H_COMP_7_STAR_RATING',
                                       'H_GLOB_STAR_RATING', # H-HSP-RATING + H-RECMND / 2
                                       'H_INDI_STAR_RATING', # H-CLEAN-HSP + H-QUIET-HSP / 2
-                                      'H_RESP_RATE_P',
-                                      'H_NUMB_COMP',
+                                      #'H_RESP_RATE_P',
+                                      #'H_NUMB_COMP',
                                      ]
 
 
 feature_dict['Timely and Effective Care'] = ['OP_2',
-                                             'OP_2_DEN',
                                              'OP_3B',
-                                             'OP_3B_DEN',
                                              'OP_8',
-                                             'OP_8_DEN',
                                              'OP_10',
-                                             'OP_10_DEN',
                                              'OP_13',
-                                             'OP_13_DEN',
                                              'OP_18B',
-                                             'OP_18B_DEN',
                                              'OP_22',
-                                             'OP_22_DEN',
                                              'OP_23',
-                                             'OP_23_DEN',
                                              'OP_29',
-                                             'OP_29_DEN',
                                              'OP_33',
-                                             'OP_33_DEN',
                                              'OP_30',
-                                             'OP_30_DEN',
-                                             'IMM_3_DEN',
                                              'IMM_3',
                                              'PC_01',
-                                             'PC_01_DEN',
                                              'SEP_1',
-                                             'SEP_1_DEN',
                                              'ED_2B',
-                                             'ED_2B_DEN',
                                             ]
 
 
@@ -280,11 +228,9 @@ ddfs = "100%"
 domains = ['Patient Experience', 'Readmission', 'Mortality', 
            'Safety of Care', 'Timely and Effective Care']
 
-print(len(main_df['Facility ID'].unique()), 'CMS numbers')
-print(len(list(set(HOSPITALS))), 'hospitals')
-
+#print(len(main_df['Facility ID'].unique()), 'CMS numbers')
+#print(len(list(set(HOSPITALS))), 'hospitals')
 random.seed(42)
-
 COLORS = []
 for h in HOSPITALS:
     if 'RUSH UNIVERSITY' in h:
@@ -815,6 +761,24 @@ app.layout = html.Div([
                                 'margin-left': '15px',
                                 }
                         ),
+                        
+                        dcc.Dropdown(
+                            id='score-type1',
+                            options=[{"label": i, "value": i} for i in ['Standardized scores', 'Raw scores']],
+                            value='Standardized scores',
+                            placeholder='Select a score type',
+                            optionHeight=50,
+                            style={
+                                'width': '250px', 
+                                'font-size': 16,
+                                'display': 'inline-block',
+                                'border-radius': '15px',
+                                'padding': '0px',
+                                'margin-bottom': '10px',
+                                'margin-left': '22px',
+                                }
+                        ),
+                        
                         html.Div(id="data_report_plot3"),
                         html.Hr(),
                         html.B(id="text10", style={'fontSize':16}),
@@ -1978,312 +1942,87 @@ def update_panel3(hospital, yr):
       Input("option_hospitals", 'children'),
       Input('set-select2', "value"),
       Input('domain-select1', "value"),
+      Input('score-type1', 'value'),
       ],
      [State("hospital-select1", "value"),
       ],
     )
-def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, selected_hospitals):    
+def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, score_type, selected_hospitals):    
+    
+    cols = ['Measure', 'Value', 'Delta value', 
+            'Percentile', 'Delta percentile', 
+            'Weight', 'Delta weight']
+    
+    df_table = pd.DataFrame(columns=cols)
+    for i in list(df_table):
+        df_table[i] = [np.nan]*4
+    
+    dashT = dash_table.DataTable(
+        data=df_table.to_dict('records'),
+        columns=[{'id': c, 'name': c} for c in df_table.columns],
+        export_format="csv",
+        page_action='none',
+        sort_action="native",
+        sort_mode="multi",
+        filter_action="native",
+        
+        style_table={#'height': '500px', 
+                     'overflowY': 'auto',
+                     },
+        style_cell={'padding':'5px',
+                    'minwidth':'140px',
+                    'width':'160px',
+                    'maxwidth':'160px',
+                    'whiteSpace':'normal',
+                    'textAlign': 'center',
+                    },
+        ) 
+    
+    # No hospital selected
+    if hospital is None:
+            
+        txt3 = "Please select a focal hospital."
+        txt4 = ""
+        return dashT, txt3, txt4
+    
+    tdf_main = main_df.copy(deep=True)        
+    name = hospital[:-9]
+    hosp_df = tdf_main[tdf_main['Name and Num'] == hospital] 
+    
+    # Selected hospital has no data among release years
+    if hosp_df.shape[0] == 0:    
+        txt3 = hospital + " had no data among the CMS Stars release years"
+        txt4 = "Try selecting another hospital"
+        return dashT, txt3, txt4
+    
+    yrs = sorted(hosp_df['Release year'].unique().tolist())
+    
+    # There is only one release year for the selected hospital (can't compute deltas)
+    if len(yrs) <= 1:
+        txt3 = hospital + ' had only one release year. Cannot compute delta values.'
+        txt4 = 'Try selecting another hospital'
+        return dashT, txt3, txt4
     
     if set_select == 'Measures group':
         
-        cols = ['Measure', 'Value', 'Delta value', 
-                'Group percentile', 'Delta percentile', 
-                'Weight', 'Delta weight']
-        
-        df_table = pd.DataFrame(columns=cols)
-        for i in list(df_table):
-            df_table[i] = [np.nan]*4
-        
-        dashT = dash_table.DataTable(
-            data=df_table.to_dict('records'),
-            columns=[{'id': c, 'name': c} for c in df_table.columns],
-            export_format="csv",
-            page_action='none',
-            sort_action="native",
-            sort_mode="multi",
-            filter_action="native",
+        tdf_main_LY = tdf_main[tdf_main['Release year'] == yrs[-1]]
+        grp_LY = tdf_main_LY[tdf_main_LY['Name and Num'] == hospital]['cnt_grp'].iloc[0]
+        tdf_main_LY = tdf_main_LY[tdf_main_LY['cnt_grp'].isin([grp_LY])]
             
-            style_table={#'height': '500px', 
-                         'overflowY': 'auto',
-                         },
-            style_cell={'padding':'5px',
-                        'minwidth':'140px',
-                        'width':'160px',
-                        'maxwidth':'160px',
-                        'whiteSpace':'normal',
-                        'textAlign': 'center',
-                        },
-            ) 
-        
-        if hospital is None:
-                
-            txt3 = "Please select a focal hospital."
-            txt4 = ""
-            return dashT, txt3, txt4
-        
-        tdf_main = main_df.copy(deep=True)
-                
-        name = hospital[:-9]
-        hosp_df = tdf_main[tdf_main['Name and Num'] == hospital] 
-        
-        if hosp_df.shape[0] == 0:    
-            txt3 = hospital + " had no data among the CMS Stars release years"
-            txt4 = "Try selecting another hospital"
-            return dashT, txt3, txt4
-        
-        yrs = sorted(hosp_df['Release year'].unique().tolist())
-        
-        if len(yrs) > 1:
-            tdf_main_LY = tdf_main[tdf_main['Release year'] == yrs[-1]]
-            grp_LY = tdf_main_LY[tdf_main_LY['Name and Num'] == hospital]['cnt_grp'].iloc[0]
-            tdf_main_LY = tdf_main_LY[tdf_main_LY['cnt_grp'].isin([grp_LY])]
-            
-            tdf_main_PY = tdf_main[tdf_main['Release year'] == yrs[-2]]
-            grp_PY = tdf_main_PY[tdf_main_PY['Name and Num'] == hospital]['cnt_grp'].iloc[0]
-            tdf_main_PY = tdf_main_PY[tdf_main_PY['cnt_grp'].isin([grp_PY])]
-            
-            ######## GET RESULTS FOR LATEST YEAR ##############
-            # Get hospitals
-            hosp_ls_LY = tdf_main_LY['Name and Num'].tolist()
-            i = 0
-            try:
-                i = hosp_ls_LY.index(hospital)
-            except:
-                txt3 = hospital + " had no data among the CMS Stars release years"
-                txt4 = "Try selecting another hospital"
-                return dashT, txt3, txt4
-            
-            # Get measures
-            
-            measure_ls = feature_dict[domain + ' (Std)']
-            hosp_scors_LY = []
-            hosp_percs_LY = []
-            hosp_wts_LY = []
-            
-            # Get values for latest year
-            for m in measure_ls:
-                ls = tdf_main_LY[m].tolist()
-                hosp_scors_LY.append(ls[i])
-                perc = round(stats.percentileofscore(ls, ls[i]), 1)
-                hosp_percs_LY.append(perc)
-            
-                # get individual measure weight ... somehow
-                
-                if domain == 'Patient Experience':
-                    pref = 'patient_exp_'   
-                elif domain == 'Readmission':
-                    pref = 'readmission_'
-                elif domain == 'Mortality':
-                    pref = 'mortality_'   
-                elif domain == 'Safety of Care':
-                    pref = 'safety_'   
-                elif domain == 'Timely and Effective Care':
-                    pref = 'process_'   
-                    
-                ls = tdf_main_LY[pref + 'measure_wt'].tolist()
-                hosp_wts_LY.append(ls[i])
-                
-                
-            ######## GET RESULTS FOR NEXT LATEST YEAR ##############
-            
-            # Get hospitals
-            hosp_ls_PY = tdf_main_PY['Name and Num'].tolist()
-            i = 0
-            try:
-                i = hosp_ls_PY.index(hospital)
-            except:
-                txt3 = hospital + " had no data among the CMS Stars release years"
-                txt4 = "Try selecting another hospital"
-                return dashT, txt3, txt4
-            
-            # Get measures
-            
-            measure_ls = feature_dict[domain + ' (Std)']
-            hosp_scors_PY = []
-            hosp_percs_PY = []
-            hosp_wts_PY = []
-            
-            # Get values for latest year
-            for m in measure_ls:
-                ls = tdf_main_PY[m].tolist()
-                hosp_scors_PY.append(ls[i])
-                perc = round(stats.percentileofscore(ls, ls[i]), 1)
-                hosp_percs_PY.append(perc)
-                
-                # get individual measure weight ... somehow
-                
-                if domain == 'Patient Experience':
-                    pref = 'patient_exp_'   
-                elif domain == 'Readmission':
-                    pref = 'readmission_'
-                elif domain == 'Mortality':
-                    pref = 'mortality_'   
-                elif domain == 'Safety of Care':
-                    pref = 'safety_'   
-                elif domain == 'Timely and Effective Care':
-                    pref = 'process_'   
-                    
-                ls = tdf_main_PY[pref + 'measure_wt'].tolist()
-                hosp_wts_PY.append(ls[i])
-                
-                
-            #########
-            
-            # Compute values for columns
-            
-            delta_value = np.round(np.array(hosp_scors_LY) - np.array(hosp_scors_PY), 4)
-            delta_perc = np.round(np.array(hosp_percs_LY) - np.array(hosp_percs_PY), 4)
-            delta_wght = np.round(np.array(hosp_wts_LY) - np.array(hosp_wts_PY), 4)
-            
-            cols = ['Measure', 'Value', 'Delta value', 
-                    'Group percentile', 'Delta percentile', 
-                    'Weight', 'Delta weight']
-            
-            df_table = pd.DataFrame(columns=cols)
-            df_table['Measure'] = measure_ls
-            df_table['Value'] = np.round(hosp_scors_LY, 4)
-            df_table['Delta value'] = delta_value.tolist()
-            df_table['Group percentile'] = hosp_percs_LY
-            df_table['Delta percentile'] = delta_perc
-            df_table['Weight'] = hosp_wts_LY
-            df_table['Delta weight'] = delta_wght
-            
-            df_table.dropna(how='all', axis=0, subset=['Value', 'Delta value', 
-                                                       'Group percentile', 'Delta percentile', 
-                                                       ], inplace=True)
-            
-            dashT = dash_table.DataTable(
-                data=df_table.to_dict('records'),
-                columns=[{'id': c, 'name': c} for c in df_table.columns],
-                export_format="csv",
-                page_action='none',
-                sort_action="native",
-                sort_mode="multi",
-                #filter_action="native",
-                
-                style_table={#'height': '500px', 
-                             'overflowY': 'auto',
-                             },
-                style_cell={'padding':'5px',
-                            'minwidth':'140px',
-                            'width':'160px',
-                            'maxwidth':'160px',
-                            'whiteSpace':'normal',
-                            'textAlign': 'center',
-                            },
-                
-                style_data_conditional=[
-                    {
-                        'if': {
-                            'column_id': 'Delta value',
-                            'filter_query': '{Delta value} > 0'
-                        },
-                        'backgroundColor': 'green',
-                        'color': 'white'
-                    },
-                    {
-                        'if': {
-                            'column_id': 'Delta value',
-                            'filter_query': '{Delta value} < 0'
-                        },
-                        'backgroundColor': 'red',
-                        'color': 'white'
-                    },
-                    {
-                        'if': {
-                            'column_id': 'Delta percentile',
-                            'filter_query': '{Delta percentile} > 0'
-                        },
-                        'backgroundColor': 'green',
-                        'color': 'white'
-                    },
-                    {
-                        'if': {
-                            'column_id': 'Delta percentile',
-                            'filter_query': '{Delta percentile} < 0'
-                        },
-                        'backgroundColor': 'red',
-                        'color': 'white'
-                    }]
-                ) 
-            
-            name1 = str(name) 
-            if name == 'RUSH UNIVERSITY MEDICAL CENTER':
-                name1 = 'RUMC'
-            elif name == 'RUSH OAK PARK HOSPITAL':
-                name1 = 'ROPH'
-            elif name == 'RUSH COPLEY':
-                name1 = 'RUSH COPLEY'
-            else:
-                name1 = "hospital " + hospital[-7:-1]
-            
-            txt3 = "The latest year of data used was " + str(int(yrs[-1])) + ". "
-            txt3 += "Delta values were computed using the prior year " + str(int(yrs[-2])) + ". "
-            txt4 = ''
-            
-            if np.isnan(grp_LY) == True and np.isnan(grp_PY) == True:
-                txt3 += "In both years, " + name1 + " was not assigned to a peer group and did not receive a star rating."
-            elif np.isnan(grp_LY) == True:
-                txt3 += "In " + str(int(yrs[-1])) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
-            elif np.isnan(grp_PY) == True:
-                txt3 += "In " + str(int(yrs[-2])) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
-            
-            elif grp_LY == grp_PY:
-                numD_LY = ' (hospitals w/ scores in ' + str(int(grp_LY + 2)) + ' domains)'
-                txt3 += "In both years, " + name1 + " was in group " + str(int(grp_LY)) + numD_LY + '.'
-            else:
-                numD_LY = ' (hospitals w/ scores in ' + str(int(grp_LY + 2)) + ' domains)'
-                numD_PY = ' (hospitals w/ scores in ' + str(int(grp_PY + 2)) + ' domains)'
-                
-                txt3 += name1 + " was in group " + str(int(grp_PY)) + numD_PY + " in " + str(int(yrs[-2]))
-                txt3 += " and in group " + str(int(grp_LY)) + numD_LY + " in " + str(int(yrs[-1])) + ". "
-                
-            return dashT, txt3, txt4
-        
-        else:
-            return dashT, '', ''
-        
-        
+        tdf_main_PY = tdf_main[tdf_main['Release year'] == yrs[-2]]
+        grp_PY = tdf_main_PY[tdf_main_PY['Name and Num'] == hospital]['cnt_grp'].iloc[0]
+        tdf_main_PY = tdf_main_PY[tdf_main_PY['cnt_grp'].isin([grp_PY])]
+    
+    
     elif set_select == 'Selected hospitals':
 
-        cols = ['Measure', 'Value', 'Change in value from previous year', 
-                'Percentile', 'Change in percentile', 
-                'Weight', 'Change in weight']
-        df_table = pd.DataFrame(columns=cols)
-        for i in list(df_table):
-            df_table[i] = [np.nan]*4
-        
-        dashT = dash_table.DataTable(
-            data=df_table.to_dict('records'),
-            columns=[{'id': c, 'name': c} for c in df_table.columns],
-            export_format="csv",
-            page_action='none',
-            sort_action="native",
-            sort_mode="multi",
-            filter_action="native",
-            
-            style_table={#'height': '500px', 
-                         'overflowY': 'auto',
-                         },
-            style_cell={'padding':'5px',
-                        'minwidth':'140px',
-                        'width':'160px',
-                        'maxwidth':'160px',
-                        'whiteSpace':'normal',
-                        'textAlign': 'center',
-                        },
-            ) 
-        
-        if hospital is None or option_hospitals is None or option_hospitals == []:
+        if option_hospitals is None or option_hospitals == []:
                 
             txt3 = ''
-            if hospital is None:
-                txt3 = "Please select a focal hospital."
             if option_hospitals is None or option_hospitals == []:
                 txt3 += "You either haven't selected any hospitals or the filters you chose left you with no hospitals to analyze."
-            
-            txt4 = ""
-            return dashT, txt3, txt4
+
+            return dashT, txt3, ''
         
     
         if hospital in option_hospitals:
@@ -2298,209 +2037,220 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, sele
             #Remove focal hospital from options, for use below
             selected_hospitals.remove(hospital)
         
-        
-        # At this point, we can still get results even selected_hospitals and option_hospitals are empty lists. 
-        #    That is, even if we've ended up with nothing to compare our hospital to.
-           
         tdf_main = main_df[main_df['Name and Num'].isin(selected_hospitals + [hospital])]
-                
-        name = hospital[:-9]
-        hosp_df = tdf_main[tdf_main['Name and Num'] == hospital] 
+        tdf_main_LY = tdf_main[tdf_main['Release year'] == yrs[-1]]
+        tdf_main_PY = tdf_main[tdf_main['Release year'] == yrs[-2]]
+            
         
-        if hosp_df.shape[0] == 0:    
-            txt3 = hospital + " had no data among the CMS Stars release years"
-            txt4 = "Try selecting another hospital"
-            return dashT, txt3, txt4
-        
-        yrs = sorted(hosp_df['Release year'].unique().tolist())
-        
-        if len(yrs) > 1:
-            tdf_main_LY = tdf_main[tdf_main['Release year'] == yrs[-1]]
-            tdf_main_PY = tdf_main[tdf_main['Release year'] == yrs[-2]]
+    ######## GET RESULTS FOR LATEST YEAR ##############
+    # Get hospitals
+    hosp_ls_LY = tdf_main_LY['Name and Num'].tolist()
+    i = 0
+    try:
+        i = hosp_ls_LY.index(hospital)
+    except:
+        txt3 = hospital + " had no data among the CMS Stars release years."
+        txt4 = "Try selecting another hospital."
+        return dashT, txt3, txt4
             
-            ######## GET RESULTS FOR LATEST YEAR ##############
-            # Get hospitals
-            hosp_ls_LY = tdf_main_LY['Name and Num'].tolist()
-            i = 0
-            try:
-                i = hosp_ls_LY.index(hospital)
-            except:
-                txt3 = hospital + " had no data among the CMS Stars release years"
-                txt4 = "Try selecting another hospital"
-                return dashT, txt3, txt4
+    # Get measures
+    measure_ls = []
+    if score_type == 'Standardized scores':
+        measure_ls = feature_dict[domain + ' (Std)']
+    elif score_type == 'Raw scores':
+        measure_ls = feature_dict[domain]
             
-            # Get measures
+    hosp_scors_LY = []
+    hosp_percs_LY = []
+    hosp_wts_LY = []
             
-            measure_ls = feature_dict[domain + ' (Std)']
-            hosp_scors_LY = []
-            hosp_percs_LY = []
-            hosp_wts_LY = []
+    # Get values for latest year
+    for m in measure_ls:
+        ls = tdf_main_LY[m].tolist()
+        hosp_scors_LY.append(ls[i])
+        perc = round(stats.percentileofscore(ls, ls[i]), 1)
+        hosp_percs_LY.append(perc)
             
-            # Get values for latest year
-            for m in measure_ls:
-                ls = tdf_main_LY[m].tolist()
-                hosp_scors_LY.append(ls[i])
-                perc = round(stats.percentileofscore(ls, ls[i]), 1)
-                hosp_percs_LY.append(perc)
+        # get individual measure weight ... somehow
                 
-                # get individual measure weight ... somehow
-                
-                if domain == 'Patient Experience':
-                    pref = 'patient_exp_'   
-                elif domain == 'Readmission':
-                    pref = 'readmission_'
-                elif domain == 'Mortality':
-                    pref = 'mortality_'   
-                elif domain == 'Safety of Care':
-                    pref = 'safety_'   
-                elif domain == 'Timely and Effective Care':
-                    pref = 'process_'   
+        if domain == 'Patient Experience':
+            pref = 'patient_exp_'   
+        elif domain == 'Readmission':
+            pref = 'readmission_'
+        elif domain == 'Mortality':
+            pref = 'mortality_'   
+        elif domain == 'Safety of Care':
+            pref = 'safety_'   
+        elif domain == 'Timely and Effective Care':
+            pref = 'process_'   
                     
-                ls = tdf_main_LY[pref + 'measure_wt'].tolist()
-                hosp_wts_LY.append(ls[i])
-            
-            ######## GET RESULTS FOR NEXT LATEST YEAR ##############
-            
-            # Get hospitals
-            hosp_ls_PY = tdf_main_PY['Name and Num'].tolist()
-            i = 0
-            try:
-                i = hosp_ls_PY.index(hospital)
-            except:
-                txt3 = hospital + " had no data among the CMS Stars release years"
-                txt4 = "Try selecting another hospital"
-                return dashT, txt3, txt4
-            
-            # Get measures
-            
-            measure_ls = feature_dict[domain + ' (Std)']
-            hosp_scors_PY = []
-            hosp_percs_PY = []
-            hosp_wts_PY = []
-            
-            # Get values for latest year
-            for m in measure_ls:
-                ls = tdf_main_PY[m].tolist()
-                hosp_scors_PY.append(ls[i])
-                perc = round(stats.percentileofscore(ls, ls[i]), 1)
-                hosp_percs_PY.append(perc)
+        ls = tdf_main_LY[pref + 'measure_wt'].tolist()
+        hosp_wts_LY.append(ls[i])
                 
-                # get individual measure weight ... somehow
                 
-                if domain == 'Patient Experience':
-                    pref = 'patient_exp_'   
-                elif domain == 'Readmission':
-                    pref = 'readmission_'
-                elif domain == 'Mortality':
-                    pref = 'mortality_'   
-                elif domain == 'Safety of Care':
-                    pref = 'safety_'   
-                elif domain == 'Timely and Effective Care':
-                    pref = 'process_'   
+    ######## GET RESULTS FOR NEXT LATEST YEAR ##############
+            
+    # Get hospitals
+    hosp_ls_PY = tdf_main_PY['Name and Num'].tolist()
+    i = 0
+    try:
+        i = hosp_ls_PY.index(hospital)
+    except:
+        txt3 = hospital + " had no data among the CMS Stars release years"
+        txt4 = "Try selecting another hospital"
+        return dashT, txt3, txt4
+            
+    # Get measures
+            
+    measure_ls = []
+    if score_type == 'Standardized scores':
+        measure_ls = feature_dict[domain + ' (Std)']
+    elif score_type == 'Raw scores':
+        measure_ls = feature_dict[domain]
+                
+    hosp_scors_PY = []
+    hosp_percs_PY = []
+    hosp_wts_PY = []
+            
+    # Get values for latest year
+    for m in measure_ls:
+        ls = tdf_main_PY[m].tolist()
+        hosp_scors_PY.append(ls[i])
+        perc = round(stats.percentileofscore(ls, ls[i]), 1)
+        hosp_percs_PY.append(perc)
+                
+        # get individual measure weight ... somehow
+                
+        if domain == 'Patient Experience':
+            pref = 'patient_exp_'   
+        elif domain == 'Readmission':
+            pref = 'readmission_'
+        elif domain == 'Mortality':
+            pref = 'mortality_'   
+        elif domain == 'Safety of Care':
+            pref = 'safety_'   
+        elif domain == 'Timely and Effective Care':
+            pref = 'process_'   
                     
-                ls = tdf_main_PY[pref + 'measure_wt'].tolist()
-                hosp_wts_PY.append(ls[i])
+        ls = tdf_main_PY[pref + 'measure_wt'].tolist()
+        hosp_wts_PY.append(ls[i])
                 
-            #########
-            
-            # Compute values for columns
-            
-            
-            delta_value = np.round(np.array(hosp_scors_LY) - np.array(hosp_scors_PY), 4)
-            delta_perc = np.round(np.array(hosp_percs_LY) - np.array(hosp_percs_PY), 4)
-            delta_wght = np.round(np.array(hosp_wts_LY) - np.array(hosp_wts_PY), 4)
-            
-            cols = ['Measure', 'Value', 'Delta value', 
-                    'Percentile', 'Delta percentile', 
-                    'Weight', 'Delta weight']
-            
-            df_table = pd.DataFrame(columns=cols)
-            df_table['Measure'] = measure_ls
-            df_table['Value'] = np.round(hosp_scors_LY, 4)
-            df_table['Delta value'] = delta_value.tolist()
-            df_table['Percentile'] = hosp_percs_LY
-            df_table['Delta percentile'] = delta_perc
-            df_table['Weight'] = hosp_wts_LY
-            df_table['Delta weight'] = delta_wght
-            
-            df_table.dropna(how='all', axis=0, subset=['Value', 'Delta value', 
-                                                       'Percentile', 'Delta percentile', 
-                                                       ], inplace=True)
-            
-            
-            dashT = dash_table.DataTable(
-                data=df_table.to_dict('records'),
-                columns=[{'id': c, 'name': c} for c in df_table.columns],
-                export_format="csv",
-                page_action='none',
-                sort_action="native",
-                sort_mode="multi",
-                #filter_action="native",
                 
-                style_table={#'height': '500px', 
-                             'overflowY': 'auto',
-                             },
-                style_cell={'padding':'5px',
-                            'minwidth':'140px',
-                            'width':'160px',
-                            'maxwidth':'160px',
-                            'whiteSpace':'normal',
-                            'textAlign': 'center',
-                            },
-                
-                style_data_conditional=[
-                    {
-                        'if': {
-                            'column_id': 'Delta value',
-                            'filter_query': '{Delta value} > 0'
+    #########
+            
+    # Compute values for columns
+            
+    delta_value = np.round(np.array(hosp_scors_LY) - np.array(hosp_scors_PY), 4)
+    delta_perc = np.round(np.array(hosp_percs_LY) - np.array(hosp_percs_PY), 4)
+    delta_wght = np.round(np.array(hosp_wts_LY) - np.array(hosp_wts_PY), 4)
+            
+    cols = ['Measure', 'Value', 'Delta value', 
+            'Percentile', 'Delta percentile', 
+            'Weight', 'Delta weight']
+            
+    df_table = pd.DataFrame(columns=cols)
+    df_table['Measure'] = measure_ls
+    df_table['Value'] = np.round(hosp_scors_LY, 4)
+    df_table['Delta value'] = delta_value.tolist()
+    df_table['Percentile'] = hosp_percs_LY
+    df_table['Delta percentile'] = delta_perc
+    df_table['Weight'] = np.round(hosp_wts_LY, 4)
+    df_table['Delta weight'] = delta_wght
+            
+    df_table.dropna(how='all', axis=0, subset=['Value', 'Delta value', 
+                                               'Percentile', 'Delta percentile', 
+                                               ], inplace=True)
+    
+    if score_type == 'Standardized scores':        
+        dashT = dash_table.DataTable(
+            data=df_table.to_dict('records'), columns=[{'id': c, 'name': c} for c in df_table.columns],
+            export_format="csv", page_action='none', sort_action="native", sort_mode="multi", #filter_action="native",
+                    
+            style_table={'overflowY': 'auto'},
+            style_cell={'padding':'5px', 'minwidth':'140px',
+                        'width':'160px', 'maxwidth':'160px',
+                        'whiteSpace':'normal', 'textAlign': 'center'},
+            
+            style_data_conditional=[
+                {
+                    'if': {
+                        'column_id': 'Delta value',
+                        'filter_query': '{Delta value} > 0'
                         },
-                        'backgroundColor': 'green',
-                        'color': 'white'
+                    'backgroundColor': 'green',
+                    'color': 'white'
                     },
-                    {
-                        'if': {
-                            'column_id': 'Delta value',
-                            'filter_query': '{Delta value} < 0'
+                {
+                    'if': {
+                        'column_id': 'Delta value',
+                        'filter_query': '{Delta value} < 0'
                         },
-                        'backgroundColor': 'red',
-                        'color': 'white'
+                    'backgroundColor': 'red',
+                    'color': 'white'
                     },
-                    {
-                        'if': {
-                            'column_id': 'Delta percentile',
-                            'filter_query': '{Delta percentile} > 0'
+                {
+                    'if': {
+                        'column_id': 'Delta percentile',
+                        'filter_query': '{Delta percentile} > 0'
                         },
-                        'backgroundColor': 'green',
-                        'color': 'white'
+                    'backgroundColor': 'green',
+                    'color': 'white'
                     },
-                    {
-                        'if': {
-                            'column_id': 'Delta percentile',
-                            'filter_query': '{Delta percentile} < 0'
+                {
+                    'if': {
+                        'column_id': 'Delta percentile',
+                        'filter_query': '{Delta percentile} < 0'
                         },
-                        'backgroundColor': 'red',
-                        'color': 'white'
+                    'backgroundColor': 'red',
+                    'color': 'white'
                     }]
-                ) 
+            ) 
+    
+    else:        
+        dashT = dash_table.DataTable(
+            data=df_table.to_dict('records'), columns=[{'id': c, 'name': c} for c in df_table.columns],
+            export_format="csv", page_action='none', sort_action="native", sort_mode="multi", #filter_action="native",
+                    
+            style_table={'overflowY': 'auto'},
+            style_cell={'padding':'5px', 'minwidth':'140px',
+                        'width':'160px', 'maxwidth':'160px',
+                        'whiteSpace':'normal', 'textAlign': 'center'},
+            ) 
             
-            name1 = str(name) 
-            if name == 'RUSH UNIVERSITY MEDICAL CENTER':
-                name1 = 'RUMC'
-            elif name == 'RUSH OAK PARK HOSPITAL':
-                name1 = 'ROPH'
-            elif name == 'RUSH COPLEY':
-                name1 = 'RUSH COPLEY'
-            else:
-                name1 = "Hospital " + hospital[-7:-1]
+    name1 = str(name) 
+    if name == 'RUSH UNIVERSITY MEDICAL CENTER':
+        name1 = 'RUMC'
+    elif name == 'RUSH OAK PARK HOSPITAL':
+        name1 = 'ROPH'
+    elif name == 'RUSH COPLEY':
+        name1 = 'RUSH COPLEY'
+    else:
+        name1 = "hospital " + hospital[-7:-1]
             
-            txt3 = "The latest year of data used was " + str(int(yrs[-1])) + ". "
-            txt3 += "Delta values were computed using the prior year " + str(int(yrs[-2])) + ". "
-            txt4 = ''
-            
-            return dashT, txt3, txt4
-        
+    txt3 = "The latest year of data used was " + str(int(yrs[-1])) + ". "
+    txt3 += "Delta values were computed using the prior year " + str(int(yrs[-2])) + ". "
+    txt4 = ''
+    
+    if set_select == 'Measures group':        
+        if np.isnan(grp_LY) == True and np.isnan(grp_PY) == True:
+            txt3 += "In both years, " + name1 + " was not assigned to a peer group and did not receive a star rating."
+        elif np.isnan(grp_LY) == True:
+            txt3 += "In " + str(int(yrs[-1])) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
+        elif np.isnan(grp_PY) == True:
+            txt3 += "In " + str(int(yrs[-2])) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
+                
+        elif grp_LY == grp_PY:
+            numD_LY = ' (hospitals w/ scores in ' + str(int(grp_LY + 2)) + ' domains)'
+            txt3 += "In both years, " + name1 + " was in group " + str(int(grp_LY)) + numD_LY + '.'
         else:
-            return dashT, '', ''
+            numD_LY = ' (hospitals w/ scores in ' + str(int(grp_LY + 2)) + ' domains)'
+            numD_PY = ' (hospitals w/ scores in ' + str(int(grp_PY + 2)) + ' domains)'
+                    
+            txt3 += name1 + " was in group " + str(int(grp_PY)) + numD_PY + " in " + str(int(yrs[-2]))
+            txt3 += " and in group " + str(int(grp_LY)) + numD_LY + " in " + str(int(yrs[-1])) + ". "
+                
+    return dashT, txt3, txt4
+    
     
 #########################################################################################
 
