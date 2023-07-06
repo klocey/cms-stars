@@ -936,31 +936,11 @@ def update_hospitals(bed_range, n_clicks1, n_clicks3, n_clicks4, n_clicks5, stat
 @app.callback(
     Output("data-download", "data"),
     Input("download-btn", "n_clicks"),
-    [State('df_tab1', "data")],
     prevent_initial_call=True,
 )
-def update_download(n_clicks, df):
+def update_download(n_clicks):
+    return dcc.send_data_frame(main_df.to_csv, "data.csv")
     
-    if df is None:
-        return dcc.send_data_frame(main_df.to_csv, "data.csv")
-            
-    df = pd.read_json(df)
-    if df.shape[0] == 0:
-        return dcc.send_data_frame(main_df.to_csv, "data.csv")
-        
-    else:
-        tdf = main_df.copy(deep=True)
-        cols = list(df)
-        
-        for i, c in enumerate(cols):
-            vals = df[c].tolist()
-            
-            c = list(eval(c))
-            tdf[(c[0], c[1])] = vals
-    
-    return dcc.send_data_frame(tdf.to_csv, "data.csv")
-
-
 
 @app.callback(
      Output("map_plot1", "figure"),
@@ -1489,7 +1469,7 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, selected_hos
             return dashT, txt3, txt4
         
         else:
-            return dashT, 'Stuff', 'More stuff'
+            return dashT, '', ''
         
     elif set_select == 'Selected hospitals':
 
@@ -1739,6 +1719,7 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, selected_hos
             
             txt3 = "The latest year of data used was " + str(int(yrs[-1])) + ". "
             txt3 += "Delta values were computed using the prior year " + str(int(yrs[-2])) + ". "
+            txt3 += "Delta's are color-coded (green = improved; red = worsened)."
             txt4 = ''
             
             return dashT, txt3, txt4
@@ -2248,7 +2229,14 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
                     
             txt3 += name1 + " was in group " + str(int(grp_PY)) + numD_PY + " in " + str(int(yrs[-2]))
             txt3 += " and in group " + str(int(grp_LY)) + numD_LY + " in " + str(int(yrs[-1])) + ". "
-                
+    
+    if score_type == 'Raw scores':
+        txt4 = "Delta's are not color-coded because, unlike standardized scores, greater deltas for raw scores "
+        txt4 += "do not necessarily imply improvement."
+        
+    else:
+        txt4 = "Delta's are color-coded (green = improved; red = worsened)."
+    
     return dashT, txt3, txt4
     
     
