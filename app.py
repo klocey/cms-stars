@@ -199,10 +199,22 @@ feature_dict['Timely and Effective Care (Std)'] = ['std_IMM_3', 'std_OP_22', 'st
                                             ]
 
 ######################## SELECTION LISTS #####################################
-PERFORMANCE_SET = ['None', 'Vizient top performer 2022: Comprehensive academic medical centers']
+PERFORMANCE_SET = ['None', 
+                   'Vizient top performer 2022: Comprehensive academic medical centers',
+                   'Vizient top performer 2022: Large specialized complex care medical centers',
+                   'Vizient top performer 2022: Complex care medical centers',
+                   'Vizient top performer 2022: Community hospitals',
+                   'U.S. News 2022-2023 Best Hospitals Honor Roll',
+                   ] 
 
-tdf = main_df[main_df['Vizient top performer 2022: Comprehensive academic medical centers'] == 1]
-VIZ_CAMCs = sorted(tdf['Name and Num'].unique().tolist())
+P_SET_ls = []
+for p in PERFORMANCE_SET:
+    if p == 'None':
+        P_SET_ls.append([])
+    else:
+        tdf = main_df[main_df[p] == 1]
+        ls = sorted(tdf['Name and Num'].unique().tolist())
+        P_SET_ls.append(ls)
 
 HOSPITALS = main_df['Name and Num'].tolist()
 beds = main_df['Beds'].tolist()
@@ -913,15 +925,16 @@ def update_hospitals(bed_range, n_clicks1, n_clicks3, n_clicks4, n_clicks5, stat
             if s in states_vals and ht in htype_vals:
                 if ct in ctype_vals:
                     
-                    if perf_types is None or len(perf_types) == 0:
+                    if perf_types is None or len(perf_types) == 0 or 'None' in perf_types:
                         hospitals.append(h)
                         
-                    elif 'None' in perf_types:
-                        hospitals.append(h)
-                        
-                    elif 'Vizient top performer 2022: Comprehensive academic medical centers' in perf_types:
-                        if h in VIZ_CAMCs:
-                            hospitals.append(h)
+                    else:
+                        for pi, p in enumerate(PERFORMANCE_SET):
+                            if p == 'None':
+                                continue
+                            elif p in perf_types:
+                                if h in P_SET_ls[pi]:
+                                    hospitals.append(h)
             
     hospitals = sorted(list(set(hospitals)))
     out_ls1 = [{"label": i, "value": i} for i in hospitals]
