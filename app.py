@@ -164,6 +164,7 @@ feature_dict['Timely and Effective Care'] = ['OP_2',
                                              'PC_01',
                                              'SEP_1',
                                              'ED_2B',
+                                             'HCP_COVID_19',
                                             ]
 
 
@@ -195,7 +196,7 @@ feature_dict['Timely and Effective Care (Std)'] = ['std_IMM_3', 'std_OP_22', 'st
                                                    'std_OP_29', 'std_OP_30', 'std_OP_33', 
                                                    'std_PC_01', 'std_SEP_1', 'std_OP_3B', 
                                                    'std_OP_18B', 'std_ED_2B', 'std_OP_8', 
-                                                   'std_OP_10', 'std_OP_13',
+                                                   'std_OP_10', 'std_OP_13', 'std_HCP_COVID_19',
                                             ]
 
 ######################## SELECTION LISTS #####################################
@@ -268,9 +269,10 @@ def description_card1():
                         "provide summary information on existing publicly reported hospital quality data. "),
                         
            
-           dcc.Markdown("This first-of-its-kind application enables users to take a deep dive " + 
-                        "into CMS Star Ratings by comparing a chosen hospital to its peer group " +
-                        "(hospitals it was clustered against) and to a customized set of other hospitals.")
+           dcc.Markdown("This unique application allows users to dive " + 
+                        "into Star Ratings by comparing a hospital to its measures peer group " +
+                        "and to customized sets of other hospitals. " + 
+                        "This app also provides predictions of 2023 Stars results." )
                         
         ],
     )
@@ -689,7 +691,7 @@ app.layout = html.Div([
                 html.Div(
                     id="data_report2",
                     children=[
-                        html.H5("Scores across domains for " + str(latest_yr)),
+                        html.H5("Scores across domains"),
                         dcc.Dropdown(
                             id='set-select1',
                             options=[{"label": i, "value": i} for i in ['Measures group', 'Selected hospitals']],
@@ -697,15 +699,34 @@ app.layout = html.Div([
                             placeholder='Measures group',
                             optionHeight=75,
                             style={
-                                'width': '350px', 
+                                'width': '200px', 
                                 'font-size': 16,
-                                #'display': 'inline-block',
+                                'display': 'inline-block',
                                 'border-radius': '15px',
                                 'padding': '0px',
                                 #'margin-top': '15px',
                                 #'margin-left': '15px',
                                 }
                         ),
+                        
+                        dcc.Dropdown(
+                            id='year-select2',
+                            options=[{"label": i, "value": i} for i in list(range(2022, latest_yr+1))],
+                            value=latest_yr,
+                            placeholder='Select a Stars year',
+                            optionHeight=50,
+                            style={
+                                'width': '120px', 
+                                'font-size': 16,
+                                'display': 'inline-block',
+                                'border-radius': '15px',
+                                'padding': '0px',
+                                #'margin-top': '15px',
+                                'margin-left': '15px',
+                                }
+                        ),
+                        
+                        
                         html.Br(),
                         html.Div(id="data_report_plot2"),
                         html.Hr(),
@@ -739,7 +760,7 @@ app.layout = html.Div([
                 html.Div(
                     id="data_report3",
                     children=[
-                        html.H5("Scores within domains for "  + str(latest_yr)),
+                        html.H5("Scores within domains"),
                         dcc.Dropdown(
                             id='set-select2',
                             options=[{"label": i, "value": i} for i in ['Measures group', 'Selected hospitals']],
@@ -782,6 +803,23 @@ app.layout = html.Div([
                             optionHeight=50,
                             style={
                                 'width': '250px', 
+                                'font-size': 16,
+                                'display': 'inline-block',
+                                'border-radius': '15px',
+                                'padding': '0px',
+                                'margin-bottom': '10px',
+                                'margin-left': '22px',
+                                }
+                        ),
+                        
+                        dcc.Dropdown(
+                            id='year-select3',
+                            options=[{"label": i, "value": i} for i in list(range(2022, latest_yr+1))],
+                            value=latest_yr,
+                            placeholder='Select a Stars year',
+                            optionHeight=50,
+                            style={
+                                'width': '120px', 
                                 'font-size': 16,
                                 'display': 'inline-block',
                                 'border-radius': '15px',
@@ -1223,11 +1261,12 @@ def update_panel1(hospital, n_clicks, option_hospitals, selected_hospitals):
       Input("close-centered2", "n_clicks"),
       Input("option_hospitals", 'children'),
       Input('set-select1', "value"),
+      Input('year-select2', "value"),
       ],
      [State("hospital-select1", "value"),
       ],
     )
-def update_panel2(hospital, n_clicks, option_hospitals, set_select, selected_hospitals):    
+def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected_hospitals):    
     
     if set_select == 'Measures group':
         
@@ -1276,13 +1315,25 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, selected_hos
             return dashT, txt3, txt4
         
         yrs = sorted(hosp_df['Release year'].unique().tolist())
+        yr1 = int(yr)
+        yr2 = int()
         
-        if len(yrs) > 1:
-            tdf_main_LY = tdf_main[tdf_main['Release year'] == yrs[-1]]
+        if yr1 == 2023:
+            yr2 = 2022
+            if yr2 in yrs:
+                pass
+            else:
+                yr2 == 2021
+        elif yr1 == 2022:
+            yr2 = 2021
+        
+        if yr1 in yrs and yr2 in yrs:
+            
+            tdf_main_LY = tdf_main[tdf_main['Release year'] == yr1]
             grp_LY = tdf_main_LY[tdf_main_LY['Name and Num'] == hospital]['cnt_grp'].iloc[0]
             tdf_main_LY = tdf_main_LY[tdf_main_LY['cnt_grp'].isin([grp_LY])]
             
-            tdf_main_PY = tdf_main[tdf_main['Release year'] == yrs[-2]]
+            tdf_main_PY = tdf_main[tdf_main['Release year'] == yr2]
             grp_PY = tdf_main_PY[tdf_main_PY['Name and Num'] == hospital]['cnt_grp'].iloc[0]
             tdf_main_PY = tdf_main_PY[tdf_main_PY['cnt_grp'].isin([grp_PY])]
             
@@ -1458,16 +1509,16 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, selected_hos
             else:
                 name1 = "hospital " + hospital[-7:-1]
             
-            txt3 = "The latest year of data used was " + str(int(yrs[-1])) + ". "
-            txt3 += "Delta values were computed using the prior year " + str(int(yrs[-2])) + ". "
+            txt3 = "The latest year of data used was " + str(yr1) + ". "
+            txt3 += "Delta values were computed using the prior year " + str(yr2) + ". "
             txt4 = ''
             
             if np.isnan(grp_LY) == True and np.isnan(grp_PY) == True:
                 txt3 += "In both years, " + name1 + " was not assigned to a peer group and did not receive a star rating."
             elif np.isnan(grp_LY) == True:
-                txt3 += "In " + str(int(yrs[-1])) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
+                txt3 += "In " + str(yr1) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
             elif np.isnan(grp_PY) == True:
-                txt3 += "In " + str(int(yrs[-2])) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
+                txt3 += "In " + str(yr2) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
             
             elif grp_LY == grp_PY:
                 numD_LY = ' (hospitals w/ scores in ' + str(int(grp_LY + 2)) + ' domains)'
@@ -1476,8 +1527,8 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, selected_hos
                 numD_LY = ' (hospitals w/ scores in ' + str(int(grp_LY + 2)) + ' domains)'
                 numD_PY = ' (hospitals w/ scores in ' + str(int(grp_PY + 2)) + ' domains)'
                 
-                txt3 += name1 + " was in group " + str(int(grp_PY)) + numD_PY + " in " + str(int(yrs[-2]))
-                txt3 += " and in group " + str(int(grp_LY)) + numD_LY + " in " + str(int(yrs[-1])) + ". "
+                txt3 += name1 + " was in group " + str(int(grp_PY)) + numD_PY + " in " + str(yr2)
+                txt3 += " and in group " + str(int(grp_LY)) + numD_LY + " in " + str(yr1) + ". "
                 
             return dashT, txt3, txt4
         
@@ -1553,10 +1604,21 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, selected_hos
             return dashT, txt3, txt4
         
         yrs = sorted(hosp_df['Release year'].unique().tolist())
+        yr1 = int(yr)
         
-        if len(yrs) > 1:
-            tdf_main_LY = tdf_main[tdf_main['Release year'] == yrs[-1]]
-            tdf_main_PY = tdf_main[tdf_main['Release year'] == yrs[-2]]
+        if yr1 == 2023:
+            yr2 = 2022
+            if yr2 in yrs:
+                pass
+            else:
+                yr2 == 2021
+        elif yr1 == 2022:
+            yr2 = 2021
+        
+        if yr1 in yrs and yr2 in yrs:
+            
+            tdf_main_LY = tdf_main[tdf_main['Release year'] == yr1]
+            tdf_main_PY = tdf_main[tdf_main['Release year'] == yr2]
             
             # Get values for latest year
             summ_ls_LY = tdf_main_LY['summary_score'].tolist()
@@ -1730,8 +1792,8 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, selected_hos
             else:
                 name1 = "Hospital " + hospital[-7:-1]
             
-            txt3 = "The latest year of data used was " + str(int(yrs[-1])) + ". "
-            txt3 += "Delta values were computed using the prior year " + str(int(yrs[-2])) + ". "
+            txt3 = "The latest year of data used was " + str(yr1) + ". "
+            txt3 += "Delta values were computed using the prior year " + str(yr2) + ". "
             txt3 += "Delta's are color-coded (green = improved; red = worsened)."
             txt4 = ''
             
@@ -1937,11 +1999,12 @@ def update_panel3(hospital, yr):
       Input('set-select2', "value"),
       Input('domain-select1', "value"),
       Input('score-type1', 'value'),
+      Input('year-select3', "value"),
       ],
      [State("hospital-select1", "value"),
       ],
     )
-def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, score_type, selected_hospitals):    
+def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, score_type, yr, selected_hospitals):    
     
     cols = ['Measure', 'Value', 'Delta value', 
             'Percentile', 'Delta percentile', 
@@ -1997,13 +2060,28 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
         txt4 = 'Try selecting another hospital'
         return dashT, txt3, txt4
     
+    yrs = sorted(hosp_df['Release year'].unique().tolist())
+    yr1 = int(yr)
+    yr2 = int()
+    
+    if yr1 == 2023:
+        yr2 = 2022
+        if yr2 in yrs:
+            pass
+        else:
+            yr2 == 2021
+    elif yr1 == 2022:
+        yr2 = 2021
+    
+    #if yr1 in yrs and yr2 in yrs:
+        
     if set_select == 'Measures group':
         
-        tdf_main_LY = tdf_main[tdf_main['Release year'] == yrs[-1]]
+        tdf_main_LY = tdf_main[tdf_main['Release year'] == yr1]
         grp_LY = tdf_main_LY[tdf_main_LY['Name and Num'] == hospital]['cnt_grp'].iloc[0]
         tdf_main_LY = tdf_main_LY[tdf_main_LY['cnt_grp'].isin([grp_LY])]
             
-        tdf_main_PY = tdf_main[tdf_main['Release year'] == yrs[-2]]
+        tdf_main_PY = tdf_main[tdf_main['Release year'] == yr2]
         grp_PY = tdf_main_PY[tdf_main_PY['Name and Num'] == hospital]['cnt_grp'].iloc[0]
         tdf_main_PY = tdf_main_PY[tdf_main_PY['cnt_grp'].isin([grp_PY])]
     
@@ -2032,8 +2110,8 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
             selected_hospitals.remove(hospital)
         
         tdf_main = main_df[main_df['Name and Num'].isin(selected_hospitals + [hospital])]
-        tdf_main_LY = tdf_main[tdf_main['Release year'] == yrs[-1]]
-        tdf_main_PY = tdf_main[tdf_main['Release year'] == yrs[-2]]
+        tdf_main_LY = tdf_main[tdf_main['Release year'] == yr1]
+        tdf_main_PY = tdf_main[tdf_main['Release year'] == yr2]
             
         
     ######## GET RESULTS FOR LATEST YEAR ##############
@@ -2221,17 +2299,17 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
     else:
         name1 = "hospital " + hospital[-7:-1]
             
-    txt3 = "The latest year of data used was " + str(int(yrs[-1])) + ". "
-    txt3 += "Delta values were computed using the prior year " + str(int(yrs[-2])) + ". "
+    txt3 = "The latest year of data used was " + str(yr1) + ". "
+    txt3 += "Delta values were computed using the prior year " + str(yr2) + ". "
     txt4 = ''
     
     if set_select == 'Measures group':        
         if np.isnan(grp_LY) == True and np.isnan(grp_PY) == True:
             txt3 += "In both years, " + name1 + " was not assigned to a peer group and did not receive a star rating."
         elif np.isnan(grp_LY) == True:
-            txt3 += "In " + str(int(yrs[-1])) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
+            txt3 += "In " + str(yr1) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
         elif np.isnan(grp_PY) == True:
-            txt3 += "In " + str(int(yrs[-2])) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
+            txt3 += "In " + str(yr2) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
                 
         elif grp_LY == grp_PY:
             numD_LY = ' (hospitals w/ scores in ' + str(int(grp_LY + 2)) + ' domains)'
@@ -2240,8 +2318,8 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
             numD_LY = ' (hospitals w/ scores in ' + str(int(grp_LY + 2)) + ' domains)'
             numD_PY = ' (hospitals w/ scores in ' + str(int(grp_PY + 2)) + ' domains)'
                     
-            txt3 += name1 + " was in group " + str(int(grp_PY)) + numD_PY + " in " + str(int(yrs[-2]))
-            txt3 += " and in group " + str(int(grp_LY)) + numD_LY + " in " + str(int(yrs[-1])) + ". "
+            txt3 += name1 + " was in group " + str(int(grp_PY)) + numD_PY + " in " + str(yr2)
+            txt3 += " and in group " + str(int(grp_LY)) + numD_LY + " in " + str(yr1) + ". "
     
     if score_type == 'Raw scores':
         txt4 = "Delta's are not color-coded because, unlike standardized scores, greater deltas for raw scores "
