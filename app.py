@@ -102,15 +102,22 @@ feature_dict['Stars Domains'] = ['Patient Experience',
                                  'Timely and Effective Care',
                                 ]
 
-feature_dict['Safety of Care'] = ['HAI_1',
-                                  'HAI_2',
-                                  'HAI_3',
-                                  'HAI_4',
-                                  'HAI_5',
-                                  'HAI_6',
-                                  'COMP_HIP_KNEE',
-                                  'PSI_90_SAFETY',
-                                 ]
+
+
+feature_dict['Safety of Care'] = ['HAI_1', 'HAI_2',
+                                  'HAI_3', 'HAI_4',
+                                  'HAI_5', 'HAI_6',
+                                  'COMP_HIP_KNEE', 'PSI_90_SAFETY']
+feature_dict['Safety of Care (std)'] = ['std_HAI_1', 'std_HAI_2', 
+                                        'std_HAI_3', 'std_HAI_4', 
+                                        'std_HAI_5', 'std_HAI_6', 
+                                        'std_COMP_HIP_KNEE', 'std_PSI_90_SAFETY']
+feature_dict['Safety of Care labels'] = ['CLABSI', 'CAUTI',
+                                         'SSI Colon', 'SSI Abd. Hysterectomy',
+                                         'MRSA Bacteremia', 'C. diff. infection',
+                                         'Hip-Knee Complication rate', 'PSI-90']
+
+
 
 feature_dict['Readmission'] = ['READM_30_HOSP_WIDE',
                                'READM_30_HIP_KNEE',
@@ -122,9 +129,31 @@ feature_dict['Readmission'] = ['READM_30_HOSP_WIDE',
                                'OP_32',
                                'OP_35_ADM',
                                'OP_35_ED',
-                               'OP_36',
-                               
-                              ]
+                               'OP_36']
+feature_dict['Readmission (std)'] = ['std_READM_30_HOSP_WIDE',
+                               'std_READM_30_HIP_KNEE',
+                               'std_EDAC_30_HF',
+                               'std_READM_30_COPD',
+                               'std_EDAC_30_AMI',
+                               'std_EDAC_30_PN',
+                               'std_READM_30_CABG',
+                               'std_OP_32',
+                               'std_OP_35_ADM',
+                               'std_OP_35_ED',
+                               'std_OP_36']
+feature_dict['Readmission labels'] = ['30-Day readmission rate, Hospital-wide',
+                               '30-Day readmission rate, HIP KNEE',
+                               'Excess days in Acute Care, HF',
+                               '30-Day readmission rate, COPD',
+                               'Excess days in Acute Care, AMI',
+                               'Excess days in Acute Care, PN',
+                               '30-Day readmission rate, CABG',
+                               '7-Day visit rate after OP colonoscopy',
+                               'Admissions for Patients Receiving OP Chemo',
+                               'ED Visits for Patients Receiving OP Chemo',
+                               'Hospital Visits after OP Surgery']
+
+
 
 feature_dict['Mortality'] = ['MORT_30_STK',
                              'MORT_30_PN',
@@ -132,8 +161,22 @@ feature_dict['Mortality'] = ['MORT_30_STK',
                              'MORT_30_COPD',
                              'MORT_30_AMI',
                              'MORT_30_CABG',
-                             'PSI_4_SURG_COMP',
-                            ]
+                             'PSI_4_SURG_COMP']
+feature_dict['Mortality (std)'] = ['std_MORT_30_STK',
+                             'std_MORT_30_PN',
+                             'std_MORT_30_HF',
+                             'std_MORT_30_COPD',
+                             'std_MORT_30_AMI',
+                             'std_MORT_30_CABG',
+                             'std_PSI_4_SURG_COMP']
+feature_dict['Mortality labels'] = ['STK 30-Day Mortality Rate',
+                             'PN 30-Day Mortality Rate',
+                             'HF 30-Day Mortality Rate',
+                             'COPD 30-Day Mortality Rate',
+                             'AMI 30-Day Mortality Rate',
+                             'CABG 30-Day Mortality Rate',
+                             'PSI-04, Death Rate, Surg. Inpatients w/ STCs']
+
 
 
 feature_dict['Patient Experience'] = ['H_COMP_1_STAR_RATING',
@@ -143,61 +186,60 @@ feature_dict['Patient Experience'] = ['H_COMP_1_STAR_RATING',
                                       'H_COMP_6_STAR_RATING',
                                       'H_COMP_7_STAR_RATING',
                                       'H_GLOB_STAR_RATING', # H-HSP-RATING + H-RECMND / 2
-                                      'H_INDI_STAR_RATING', # H-CLEAN-HSP + H-QUIET-HSP / 2
+                                      'H_INDI_STAR_RATING'] # H-CLEAN-HSP + H-QUIET-HSP / 2
                                       #'H_RESP_RATE_P',
-                                      #'H_NUMB_COMP',
-                                     ]
-
-
-feature_dict['Timely and Effective Care'] = ['OP_2',
-                                             'OP_3B',
-                                             'OP_8',
-                                             'OP_10',
-                                             'OP_13',
-                                             'OP_18B',
-                                             'OP_22',
-                                             'OP_23',
-                                             'OP_29',
-                                             'OP_33',
-                                             'OP_30',
-                                             'IMM_3',
-                                             'PC_01',
-                                             'SEP_1',
-                                             'ED_2B',
-                                             'HCP_COVID_19',
-                                            ]
-
-
-
-feature_dict['Safety of Care (Std)'] = ['std_COMP_HIP_KNEE', 'std_HAI_1', 'std_HAI_2', 'std_HAI_3', 
-                                        'std_HAI_4', 'std_HAI_5', 'std_HAI_6', 'std_PSI_90_SAFETY',
-                                 ]
-
-feature_dict['Readmission (Std)'] = ['std_EDAC_30_AMI', 'std_EDAC_30_HF', 'std_EDAC_30_PN', 
-                                     'std_OP_32', 'std_READM_30_CABG', 'std_READM_30_COPD', 
-                                     'std_READM_30_HIP_KNEE', 'std_READM_30_HOSP_WIDE', 'std_OP_35_ADM',
-                                     'std_OP_35_ED', 'std_OP_36',
-                              ]
-
-feature_dict['Mortality (Std)'] = ['std_MORT_30_AMI', 'std_MORT_30_CABG', 'std_MORT_30_COPD', 
-                                   'std_MORT_30_HF', 'std_MORT_30_PN', 'std_MORT_30_STK', 
-                                   'std_PSI_4_SURG_COMP',
-                            ]
-
-
-feature_dict['Patient Experience (Std)'] = ['std_H_COMP_1_STAR_RATING', 'std_H_COMP_2_STAR_RATING', 
+                                      #'H_NUMB_COMP']
+feature_dict['Patient Experience (std)'] = ['std_H_COMP_1_STAR_RATING', 'std_H_COMP_2_STAR_RATING', 
                                             'std_H_COMP_3_STAR_RATING', 'std_H_COMP_5_STAR_RATING', 
                                             'std_H_COMP_6_STAR_RATING', 'std_H_COMP_7_STAR_RATING', 
-                                            'std_H_GLOB_STAR_RATING', 'std_H_INDI_STAR_RATING',
-                                     ]
+                                            'std_H_GLOB_STAR_RATING', 'std_H_INDI_STAR_RATING']
+feature_dict['Patient Experience labels'] = ['Nurse Communication',
+                                      'Doctor Communication',
+                                      'Staff responsiveness',
+                                      'Communication about medicines',
+                                      'Discharge information',
+                                      'Care transition',
+                                      'Overall Rating of Hospital', # H-HSP-RATING + H-RECMND / 2
+                                      'Cleanliness and Quietness'] # H-CLEAN-HSP + H-QUIET-HSP / 2
+                                      #'H_RESP_RATE_P',
+                                      #'H_NUMB_COMP',
 
+                                        
 
-feature_dict['Timely and Effective Care (Std)'] = ['std_IMM_3', 'std_OP_22', 'std_OP_23', 
-                                                   'std_OP_29', 'std_OP_30', 'std_OP_33', 
-                                                   'std_PC_01', 'std_SEP_1', 'std_OP_3B', 
-                                                   'std_OP_18B', 'std_ED_2B', 'std_OP_8', 
-                                                   'std_OP_10', 'std_OP_13', 'std_HCP_COVID_19',
+feature_dict['Timely and Effective Care'] = ['OP_2', 'OP_3B', 'OP_8',
+                                             'OP_10', 'OP_13', 'OP_18B',
+                                             'OP_22', 'OP_23', 'OP_29',
+                                             'OP_33', 'OP_30', 'IMM_3',
+                                             'PC_01', 'SEP_1', 'ED_2B',
+                                             'HCP_COVID_19']
+
+feature_dict['Timely and Effective Care (std)'] = ['std_OP_2', 'std_OP_3B', 'std_OP_8',
+                                                   'std_OP_10', 'std_OP_13', 'std_OP_18B',
+                                                   'std_OP_22', 'std_OP_23', 'std_OP_29',
+                                                   'std_OP_33', 'std_OP_30', 'std_IMM_3',
+                                                   'std_PC_01', 'std_SEP_1', 'std_ED_2B',
+                                                   'std_HCP_COVID_19',
                                             ]
+
+feature_dict['Timely and Effective Care labels'] = ['OP-2: Fibrinolytic therapy w/in 30 min of ED arrival',
+                                             'OP-3b: Median time to trans to other facility for Acute Coronary Int.',
+                                             'OP-8: MRI Lumbar Spine for Low Back Pain',
+                                             'OP-10: Abdomen CT Use of Contrast Material',
+                                             'OP-13: Cardiac Imaging for Preop Risk for non-cardiac low-risk surg.',
+                                             'OP-18b: Median Time from ED Arrival to ED Departure',
+                                             'OP-22: ED-Patient Left Without Being Seen',
+                                             'OP-23: Received interp. of head CT/MRI for stroke w/in 45 min of arrival',
+                                             'OP-29: Endoscopy/Polyp Surv.: appropriate follow-up int.',
+                                             'OP-33: External Beam Radiotherapy for Bone Metastases',
+                                             'OP-30: Endoscopy/Polyp Surv.: avoidance of inappropriate use',
+                                             'IMM-3: Healthcare Personnel Influenza Vaccination',
+                                             'PC-1: Percent babies elect. del. prior to 39 weeks gestation',
+                                             'SEP-1: Severe Sepsis and Septic Shock',
+                                             'ED-2b: Admit decision time to ED depart time, admitted patients',
+                                             'HCP COVID-19: COVID-19 Vaccination Coverage Among HCP',
+                                            ]
+
+
 
 ######################## SELECTION LISTS #####################################
 PERFORMANCE_SET = ['None', 
@@ -1420,15 +1462,15 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected
             
             values_LY = [summ_scor_LY, mort_scor_LY, safe_scor_LY, read_scor_LY, pexp_scor_LY, proc_scor_LY]
             values_PY = [summ_scor_PY, mort_scor_PY, safe_scor_PY, read_scor_PY, pexp_scor_PY, proc_scor_PY]
-            delta_value = np.round(np.array(values_LY) - np.array(values_PY), 4)
+            delta_value = np.round(np.array(values_LY) - np.array(values_PY), 3)
             
             perc_LY = [summ_perc_LY, mort_perc_LY, safe_perc_LY, read_perc_LY, pexp_perc_LY, proc_perc_LY]
             perc_PY = [summ_perc_PY, mort_perc_PY, safe_perc_PY, read_perc_PY, pexp_perc_PY, proc_perc_PY]
-            delta_perc = np.round(np.array(perc_LY) - np.array(perc_PY), 4)
+            delta_perc = np.round(np.array(perc_LY) - np.array(perc_PY), 3)
             
             wght_LY = [mort_wt_LY, safe_wt_LY, read_wt_LY, pexp_wt_LY, proc_wt_LY] 
             wght_PY = [mort_wt_PY, safe_wt_PY, read_wt_PY, pexp_wt_PY, proc_wt_PY] 
-            delta_wght = np.round(np.array(wght_LY) - np.array(wght_PY), 4)
+            delta_wght = np.round(np.array(wght_LY) - np.array(wght_PY), 3)
             
             cols = ['Domain', 'Value', 'Delta value', 
                     'Group percentile', 'Delta percentile', 
@@ -1436,7 +1478,7 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected
             
             df_table = pd.DataFrame(columns=cols)
             df_table['Domain'] = domains
-            df_table['Value'] = np.round(values_LY, 4)
+            df_table['Value'] = np.round(values_LY, 3)
             df_table['Delta value'] = delta_value.tolist()
             df_table['Group percentile'] = perc_LY
             df_table['Delta percentile'] = delta_perc
@@ -1703,15 +1745,15 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected
             
             values_LY = [summ_scor_LY, mort_scor_LY, safe_scor_LY, read_scor_LY, pexp_scor_LY, proc_scor_LY]
             values_PY = [summ_scor_PY, mort_scor_PY, safe_scor_PY, read_scor_PY, pexp_scor_PY, proc_scor_PY]
-            delta_value = np.round(np.array(values_LY) - np.array(values_PY), 4)
+            delta_value = np.round(np.array(values_LY) - np.array(values_PY), 3)
             
             perc_LY = [summ_perc_LY, mort_perc_LY, safe_perc_LY, read_perc_LY, pexp_perc_LY, proc_perc_LY]
             perc_PY = [summ_perc_PY, mort_perc_PY, safe_perc_PY, read_perc_PY, pexp_perc_PY, proc_perc_PY]
-            delta_perc = np.round(np.array(perc_LY) - np.array(perc_PY), 4)
+            delta_perc = np.round(np.array(perc_LY) - np.array(perc_PY), 3)
             
             wght_LY = [mort_wt_LY, safe_wt_LY, read_wt_LY, pexp_wt_LY, proc_wt_LY] 
             wght_PY = [mort_wt_PY, safe_wt_PY, read_wt_PY, pexp_wt_PY, proc_wt_PY] 
-            delta_wght = np.round(np.array(wght_LY) - np.array(wght_PY), 4)
+            delta_wght = np.round(np.array(wght_LY) - np.array(wght_PY), 3)
             
             cols = ['Domain', 'Value', 'Delta value', 
                     'Percentile', 'Delta percentile', 
@@ -1719,7 +1761,7 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected
             
             df_table = pd.DataFrame(columns=cols)
             df_table['Domain'] = domains
-            df_table['Value'] = np.round(values_LY, 4)
+            df_table['Value'] = np.round(values_LY, 3)
             df_table['Delta value'] = delta_value.tolist()
             df_table['Percentile'] = perc_LY
             df_table['Delta percentile'] = delta_perc
@@ -2128,7 +2170,7 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
     # Get measures
     measure_ls = []
     if score_type == 'Standardized scores':
-        measure_ls = feature_dict[domain + ' (Std)']
+        measure_ls = feature_dict[domain + ' (std)']
     elif score_type == 'Raw scores':
         measure_ls = feature_dict[domain]
             
@@ -2137,27 +2179,32 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
     hosp_wts_LY = []
             
     # Get values for latest year
-    for m in measure_ls:
-        ls = tdf_main_LY[m].tolist()
-        hosp_scors_LY.append(ls[i])
-        perc = round(stats.percentileofscore(ls, ls[i]), 1)
-        hosp_percs_LY.append(perc)
+    labels_ls = []
+    for ii, m in enumerate(measure_ls):
+        try:
+            ls = tdf_main_LY[m].tolist()
+            hosp_scors_LY.append(ls[i])
+            perc = round(stats.percentileofscore(ls, ls[i]), 1)
+            hosp_percs_LY.append(perc)
             
-        # get individual measure weight ... somehow
-                
-        if domain == 'Patient Experience':
-            pref = 'patient_exp_'   
-        elif domain == 'Readmission':
-            pref = 'readmission_'
-        elif domain == 'Mortality':
-            pref = 'mortality_'   
-        elif domain == 'Safety of Care':
-            pref = 'safety_'   
-        elif domain == 'Timely and Effective Care':
-            pref = 'process_'   
-                    
-        ls = tdf_main_LY[pref + 'measure_wt'].tolist()
-        hosp_wts_LY.append(ls[i])
+            ls2 = feature_dict[domain + ' labels']
+            labels_ls.append(ls2[ii])
+            
+            if domain == 'Patient Experience':
+                pref = 'patient_exp_'   
+            elif domain == 'Readmission':
+                pref = 'readmission_'
+            elif domain == 'Mortality':
+                pref = 'mortality_'   
+            elif domain == 'Safety of Care':
+                pref = 'safety_'   
+            elif domain == 'Timely and Effective Care':
+                pref = 'process_'   
+                        
+            ls = tdf_main_LY[pref + 'measure_wt'].tolist()
+            hosp_wts_LY.append(ls[i])
+        except:
+            pass
                 
                 
     ######## GET RESULTS FOR NEXT LATEST YEAR ##############
@@ -2176,7 +2223,7 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
             
     measure_ls = []
     if score_type == 'Standardized scores':
-        measure_ls = feature_dict[domain + ' (Std)']
+        measure_ls = feature_dict[domain + ' (std)']
     elif score_type == 'Raw scores':
         measure_ls = feature_dict[domain]
                 
@@ -2185,49 +2232,55 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
     hosp_wts_PY = []
             
     # Get values for latest year
-    for m in measure_ls:
-        ls = tdf_main_PY[m].tolist()
-        hosp_scors_PY.append(ls[i])
-        perc = round(stats.percentileofscore(ls, ls[i]), 1)
-        hosp_percs_PY.append(perc)
-                
-        # get individual measure weight ... somehow
-                
-        if domain == 'Patient Experience':
-            pref = 'patient_exp_'   
-        elif domain == 'Readmission':
-            pref = 'readmission_'
-        elif domain == 'Mortality':
-            pref = 'mortality_'   
-        elif domain == 'Safety of Care':
-            pref = 'safety_'   
-        elif domain == 'Timely and Effective Care':
-            pref = 'process_'   
+    labels_ls = []
+    for ii, m in enumerate(measure_ls):
+        try:
+            ls = tdf_main_PY[m].tolist()
+            hosp_scors_PY.append(ls[i])
+            perc = round(stats.percentileofscore(ls, ls[i]), 1)
+            hosp_percs_PY.append(perc)
+            
+            ls2 = feature_dict[domain + ' labels']
+            labels_ls.append(ls2[ii])
                     
-        ls = tdf_main_PY[pref + 'measure_wt'].tolist()
-        hosp_wts_PY.append(ls[i])
-                
+            # get individual measure weight ... somehow
+                    
+            if domain == 'Patient Experience':
+                pref = 'patient_exp_'   
+            elif domain == 'Readmission':
+                pref = 'readmission_'
+            elif domain == 'Mortality':
+                pref = 'mortality_'   
+            elif domain == 'Safety of Care':
+                pref = 'safety_'   
+            elif domain == 'Timely and Effective Care':
+                pref = 'process_'   
+                        
+            ls = tdf_main_PY[pref + 'measure_wt'].tolist()
+            hosp_wts_PY.append(ls[i])
+        except:
+            pass
                 
     #########
             
     # Compute values for columns
             
-    delta_value = np.round(np.array(hosp_scors_LY) - np.array(hosp_scors_PY), 4)
-    delta_perc = np.round(np.array(hosp_percs_LY) - np.array(hosp_percs_PY), 4)
-    delta_wght = np.round(np.array(hosp_wts_LY) - np.array(hosp_wts_PY), 4)
+    delta_value = np.round(np.array(hosp_scors_LY) - np.array(hosp_scors_PY), 3)
+    delta_perc = np.round(np.array(hosp_percs_LY) - np.array(hosp_percs_PY), 3)
+    delta_wght = np.round(np.array(hosp_wts_LY) - np.array(hosp_wts_PY), 3)
             
     cols = ['Measure', 'Value', 'Delta value', 
-            'Percentile', 'Delta percentile', 
-            'Weight', 'Delta weight']
+            'Percentile', 'Delta percentile'] 
+            #'Weight', 'Delta weight']
             
     df_table = pd.DataFrame(columns=cols)
-    df_table['Measure'] = measure_ls
-    df_table['Value'] = np.round(hosp_scors_LY, 4)
+    df_table['Measure'] = labels_ls
+    df_table['Value'] = np.round(hosp_scors_LY, 3)
     df_table['Delta value'] = delta_value.tolist()
     df_table['Percentile'] = hosp_percs_LY
     df_table['Delta percentile'] = delta_perc
-    df_table['Weight'] = np.round(hosp_wts_LY, 4)
-    df_table['Delta weight'] = delta_wght
+    #df_table['Weight'] = np.round(hosp_wts_LY, 4)
+    #df_table['Delta weight'] = delta_wght
             
     df_table.dropna(how='all', axis=0, subset=['Value', 'Delta value', 
                                                'Percentile', 'Delta percentile', 
@@ -2242,7 +2295,12 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
             style_cell={'padding':'5px', 'minwidth':'140px',
                         'width':'160px', 'maxwidth':'160px',
                         'whiteSpace':'normal', 'textAlign': 'center'},
-            
+            style_cell_conditional=[
+                        {'if': {'column_id': 'Measure'},
+                         'width': '30%'},
+                        #{'if': {'column_id': 'Region'},
+                        # 'width': '30%'},
+                        ],
             style_data_conditional=[
                 {
                     'if': {
@@ -2287,6 +2345,12 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
             style_cell={'padding':'5px', 'minwidth':'140px',
                         'width':'160px', 'maxwidth':'160px',
                         'whiteSpace':'normal', 'textAlign': 'center'},
+            style_cell_conditional=[
+                        {'if': {'column_id': 'Measure'},
+                         'width': '30%'},
+                        #{'if': {'column_id': 'Region'},
+                        # 'width': '30%'},
+                    ]
             ) 
             
     name1 = str(name) 
