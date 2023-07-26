@@ -312,7 +312,7 @@ def description_card1():
            dcc.Markdown("This unique application allows users to dive " + 
                         "into Star Ratings by comparing a hospital to its measures peer group " +
                         "and to customized sets of other hospitals. " + 
-                        "This app also provides predictions of 2023 Stars results." )
+                        "This app will eventually provide predictions of 2024 Stars results." )
                         
         ],
     )
