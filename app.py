@@ -42,7 +42,6 @@ server = app.server
 
 main_df = pd.read_pickle('dataframe_data/hosp_stars_dat.pkl')
 beds_max = np.nanmax(main_df['Beds'])
-#for l in list(main_df): print(l)
 
 
 ######################## Create Features Dictionary #####################################
@@ -283,8 +282,7 @@ ddfs = "100%"
 domains = ['Patient Experience', 'Readmission', 'Mortality', 
            'Safety of Care', 'Timely and Effective Care']
 
-#print(len(main_df['Facility ID'].unique()), 'CMS numbers')
-#print(len(list(set(HOSPITALS))), 'hospitals')
+
 random.seed(42)
 COLORS = []
 for h in HOSPITALS:
@@ -2049,8 +2047,8 @@ def update_panel3(hospital, yr):
 def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, score_type, yr, selected_hospitals):    
     
     cols = ['Measure', 'Value', 'Delta value', 
-            'Percentile', 'Delta percentile', 
-            'Weight', 'Delta weight']
+            'Percentile', 'Delta percentile'] 
+            #'Weight', 'Delta weight']
     
     df_table = pd.DataFrame(columns=cols)
     for i in list(df_table):
@@ -2088,6 +2086,9 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
     name = hospital[:-9]
     hosp_df = tdf_main[tdf_main['Name and Num'] == hospital] 
     
+    #print(hosp_df.head())
+    #print(list(hosp_df))
+    
     # Selected hospital has no data among release years
     if hosp_df.shape[0] == 0:    
         txt3 = hospital + " had no data among the CMS Stars release years"
@@ -2105,7 +2106,7 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
     yrs = sorted(hosp_df['Release year'].unique().tolist())
     yr1 = int(yr)
     yr2 = int()
-    
+        
     if yr1 == 2023:
         yr2 = 2022
         if yr2 in yrs:
@@ -2115,6 +2116,8 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
     elif yr1 == 2022:
         yr2 = 2021
     
+    print(yr1, yr2)
+
     #if yr1 in yrs and yr2 in yrs:
         
     if set_select == 'Measures group':
@@ -2155,10 +2158,10 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
         tdf_main_LY = tdf_main[tdf_main['Release year'] == yr1]
         tdf_main_PY = tdf_main[tdf_main['Release year'] == yr2]
             
-        
     ######## GET RESULTS FOR LATEST YEAR ##############
     # Get hospitals
     hosp_ls_LY = tdf_main_LY['Name and Num'].tolist()
+    
     i = 0
     try:
         i = hosp_ls_LY.index(hospital)
@@ -2173,16 +2176,17 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
         measure_ls = feature_dict[domain + ' (std)']
     elif score_type == 'Raw scores':
         measure_ls = feature_dict[domain]
-            
+    
     hosp_scors_LY = []
     hosp_percs_LY = []
     hosp_wts_LY = []
-            
+    
     # Get values for latest year
     labels_ls = []
     for ii, m in enumerate(measure_ls):
         try:
             ls = tdf_main_LY[m].tolist()
+            
             hosp_scors_LY.append(ls[i])
             perc = round(stats.percentileofscore(ls, ls[i]), 1)
             hosp_percs_LY.append(perc)
@@ -2205,8 +2209,9 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
             hosp_wts_LY.append(ls[i])
         except:
             pass
-                
-                
+    
+    
+            
     ######## GET RESULTS FOR NEXT LATEST YEAR ##############
             
     # Get hospitals
@@ -2262,12 +2267,12 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
             pass
                 
     #########
-            
+        
     # Compute values for columns
             
     delta_value = np.round(np.array(hosp_scors_LY) - np.array(hosp_scors_PY), 3)
     delta_perc = np.round(np.array(hosp_percs_LY) - np.array(hosp_percs_PY), 3)
-    delta_wght = np.round(np.array(hosp_wts_LY) - np.array(hosp_wts_PY), 3)
+    #delta_wght = np.round(np.array(hosp_wts_LY) - np.array(hosp_wts_PY), 3)
             
     cols = ['Measure', 'Value', 'Delta value', 
             'Percentile', 'Delta percentile'] 
@@ -2281,7 +2286,7 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
     df_table['Delta percentile'] = delta_perc
     #df_table['Weight'] = np.round(hosp_wts_LY, 4)
     #df_table['Delta weight'] = delta_wght
-            
+    
     df_table.dropna(how='all', axis=0, subset=['Value', 'Delta value', 
                                                'Percentile', 'Delta percentile', 
                                                ], inplace=True)
