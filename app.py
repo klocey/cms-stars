@@ -309,10 +309,10 @@ def description_card1():
                         "provide summary information on existing publicly reported hospital quality data. "),
                         
            
-           dcc.Markdown("This unique application allows users to dive " + 
-                        "into Star Ratings by comparing a hospital to its measures peer group " +
+           dcc.Markdown("This app allows users to dive " + 
+                        "into Star Ratings by comparing a hospital to its peer group " +
                         "and to customized sets of other hospitals. " + 
-                        "This app will eventually provide predictions of 2024 Stars results." )
+                        "This app uses the most recent release of CMS data to provide predictions of 2024 Stars results." )
                         
         ],
     )
@@ -1358,12 +1358,20 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected
         yr1 = int(yr)
         yr2 = int()
         
+        if yr1 == 2024:
+            yr2 = 2023
+            if yr2 in yrs:
+                pass
+            else:
+                yr2 == 2022
+                
         if yr1 == 2023:
             yr2 = 2022
             if yr2 in yrs:
                 pass
             else:
                 yr2 == 2021
+                
         elif yr1 == 2022:
             yr2 = 2021
         
@@ -1646,12 +1654,20 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected
         yrs = sorted(hosp_df['Release year'].unique().tolist())
         yr1 = int(yr)
         
+        if yr1 == 2024:
+            yr2 = 2023
+            if yr2 in yrs:
+                pass
+            else:
+                yr2 == 2022
+                
         if yr1 == 2023:
             yr2 = 2022
             if yr2 in yrs:
                 pass
             else:
                 yr2 == 2021
+                
         elif yr1 == 2022:
             yr2 = 2021
         
@@ -2106,6 +2122,13 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
     yrs = sorted(hosp_df['Release year'].unique().tolist())
     yr1 = int(yr)
     yr2 = int()
+    
+    if yr1 == 2024:
+        yr2 = 2023
+        if yr2 in yrs:
+            pass
+        else:
+            yr2 == 2022
         
     if yr1 == 2023:
         yr2 = 2022
@@ -2113,6 +2136,7 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
             pass
         else:
             yr2 == 2021
+            
     elif yr1 == 2022:
         yr2 = 2021
     
