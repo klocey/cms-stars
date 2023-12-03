@@ -4,6 +4,7 @@ from dash import html
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 from dash import dash_table
+from dash.exceptions import PreventUpdate
 
 import pandas as pd
 import plotly
@@ -259,6 +260,7 @@ for p in PERFORMANCE_SET:
         P_SET_ls.append(ls)
 
 HOSPITALS = main_df['Name and Num'].tolist()
+
 beds = main_df['Beds'].tolist()
 states = main_df['State'].tolist()
 htypes = main_df['Hospital Type'].tolist()
@@ -950,6 +952,31 @@ def toggle_modal5(n1, n2, is_open):
     return is_open
 
 
+
+
+@app.callback([Output('year-select1', 'options'),
+               Output('year-select1', 'value'),
+               Output('year-select2', 'options'),
+               Output('year-select2', 'value'),
+               Output('year-select3', 'options'),
+               Output('year-select3', 'value'),
+               ],
+              [Input('hospital-select1b', 'value'),
+               ],
+            )
+def update_yrs(hospital):
+    
+    if hospital is None:
+        raise PreventUpdate
+        
+    else:
+        yrs = main_df[main_df['Name and Num'] == hospital]['Release year'].unique()
+        yrs = sorted(yrs, reverse=True)
+        
+        options = [{"label": i, "value": i} for i in yrs]
+        return options, yrs[0], options, yrs[0], options, yrs[0]
+
+
 @app.callback( # Updated number of beds text
     Output('Filterbeds1', 'children'),
     [
@@ -1375,15 +1402,23 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected
         elif yr1 == 2022:
             yr2 = 2021
         
+        elif yr1 == 2021:
+            yr2 = 2021
+            
         if yr1 in yrs and yr2 in yrs:
             
             tdf_main_LY = tdf_main[tdf_main['Release year'] == yr1]
             grp_LY = tdf_main_LY[tdf_main_LY['Name and Num'] == hospital]['cnt_grp'].iloc[0]
             tdf_main_LY = tdf_main_LY[tdf_main_LY['cnt_grp'].isin([grp_LY])]
             
-            tdf_main_PY = tdf_main[tdf_main['Release year'] == yr2]
-            grp_PY = tdf_main_PY[tdf_main_PY['Name and Num'] == hospital]['cnt_grp'].iloc[0]
-            tdf_main_PY = tdf_main_PY[tdf_main_PY['cnt_grp'].isin([grp_PY])]
+            if yr1 == 2021:
+                grp_PY = np.nan
+                tdf_main_PY = None
+                
+            else:
+                tdf_main_PY = tdf_main[tdf_main['Release year'] == yr2]
+                grp_PY = tdf_main_PY[tdf_main_PY['Name and Num'] == hospital]['cnt_grp'].iloc[0]
+                tdf_main_PY = tdf_main_PY[tdf_main_PY['cnt_grp'].isin([grp_PY])]
             
             # Get values for latest year
             summ_ls_LY = tdf_main_LY['summary_score'].tolist()
@@ -1428,41 +1463,60 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected
             
             
             # Get values for next latest year
-            summ_ls_PY = tdf_main_PY['summary_score'].tolist()
-            hosp_ls_PY = tdf_main_PY['Name and Num'].tolist()
-            mort_ls_PY = tdf_main_PY['Std_Outcomes_Mortality_score'].tolist()
-            safe_ls_PY = tdf_main_PY['Std_Outcomes_Safety_score'].tolist()
-            read_ls_PY = tdf_main_PY['Std_Outcomes_Readmission_score'].tolist()
-            pexp_ls_PY = tdf_main_PY['Std_PatientExp_score'].tolist()
-            proc_ls_PY = tdf_main_PY['Std_Process_score'].tolist()
-            mort_ws_PY = tdf_main_PY['weight_Outcomes_Mortality'].tolist()
-            safe_ws_PY = tdf_main_PY['weight_Outcomes_Safety'].tolist()
-            read_ws_PY = tdf_main_PY['weight_Outcomes_Readmission'].tolist()
-            pexp_ws_PY = tdf_main_PY['weight_PatientExperience'].tolist()
-            proc_ws_PY = tdf_main_PY['weight_Process'].tolist()
-            
-            i = hosp_ls_PY.index(hospital)
-            
-            summ_scor_PY = summ_ls_PY[i]
-            mort_scor_PY = mort_ls_PY[i]
-            safe_scor_PY = safe_ls_PY[i]
-            read_scor_PY = read_ls_PY[i]
-            pexp_scor_PY = pexp_ls_PY[i]
-            proc_scor_PY = proc_ls_PY[i]
-            mort_wt_PY = mort_ws_PY[i]
-            safe_wt_PY = safe_ws_PY[i]
-            read_wt_PY = read_ws_PY[i]
-            pexp_wt_PY = pexp_ws_PY[i]
-            proc_wt_PY = proc_ws_PY[i]
-            
-            summ_perc_PY = round(stats.percentileofscore(summ_ls_PY, summ_scor_PY), 1)
-            mort_perc_PY = round(stats.percentileofscore(mort_ls_PY, mort_scor_PY), 1)
-            safe_perc_PY = round(stats.percentileofscore(safe_ls_PY, safe_scor_PY), 1)
-            read_perc_PY = round(stats.percentileofscore(read_ls_PY, read_scor_PY), 1)
-            pexp_perc_PY = round(stats.percentileofscore(pexp_ls_PY, pexp_scor_PY), 1)
-            proc_perc_PY = round(stats.percentileofscore(proc_ls_PY, proc_scor_PY), 1)
-            
-            
+            if yr1 != 2021:
+                summ_ls_PY = tdf_main_PY['summary_score'].tolist()
+                hosp_ls_PY = tdf_main_PY['Name and Num'].tolist()
+                mort_ls_PY = tdf_main_PY['Std_Outcomes_Mortality_score'].tolist()
+                safe_ls_PY = tdf_main_PY['Std_Outcomes_Safety_score'].tolist()
+                read_ls_PY = tdf_main_PY['Std_Outcomes_Readmission_score'].tolist()
+                pexp_ls_PY = tdf_main_PY['Std_PatientExp_score'].tolist()
+                proc_ls_PY = tdf_main_PY['Std_Process_score'].tolist()
+                mort_ws_PY = tdf_main_PY['weight_Outcomes_Mortality'].tolist()
+                safe_ws_PY = tdf_main_PY['weight_Outcomes_Safety'].tolist()
+                read_ws_PY = tdf_main_PY['weight_Outcomes_Readmission'].tolist()
+                pexp_ws_PY = tdf_main_PY['weight_PatientExperience'].tolist()
+                proc_ws_PY = tdf_main_PY['weight_Process'].tolist()
+                
+                i = hosp_ls_PY.index(hospital)
+                
+                summ_scor_PY = summ_ls_PY[i]
+                mort_scor_PY = mort_ls_PY[i]
+                safe_scor_PY = safe_ls_PY[i]
+                read_scor_PY = read_ls_PY[i]
+                pexp_scor_PY = pexp_ls_PY[i]
+                proc_scor_PY = proc_ls_PY[i]
+                mort_wt_PY = mort_ws_PY[i]
+                safe_wt_PY = safe_ws_PY[i]
+                read_wt_PY = read_ws_PY[i]
+                pexp_wt_PY = pexp_ws_PY[i]
+                proc_wt_PY = proc_ws_PY[i]
+                
+                summ_perc_PY = round(stats.percentileofscore(summ_ls_PY, summ_scor_PY), 1)
+                mort_perc_PY = round(stats.percentileofscore(mort_ls_PY, mort_scor_PY), 1)
+                safe_perc_PY = round(stats.percentileofscore(safe_ls_PY, safe_scor_PY), 1)
+                read_perc_PY = round(stats.percentileofscore(read_ls_PY, read_scor_PY), 1)
+                pexp_perc_PY = round(stats.percentileofscore(pexp_ls_PY, pexp_scor_PY), 1)
+                proc_perc_PY = round(stats.percentileofscore(proc_ls_PY, proc_scor_PY), 1)
+                
+            elif yr1 == 2021:
+                summ_scor_PY = np.nan
+                mort_scor_PY = np.nan
+                safe_scor_PY = np.nan
+                read_scor_PY = np.nan
+                pexp_scor_PY = np.nan
+                proc_scor_PY = np.nan
+                mort_wt_PY = np.nan
+                safe_wt_PY = np.nan
+                read_wt_PY = np.nan
+                pexp_wt_PY = np.nan
+                proc_wt_PY = np.nan
+                summ_perc_PY = np.nan
+                mort_perc_PY = np.nan
+                safe_perc_PY = np.nan
+                read_perc_PY = np.nan
+                pexp_perc_PY = np.nan
+                proc_perc_PY = np.nan
+                
             # compute values for columns
             domains = ['Summary Score', 'Mortality', 'Safety of Care', 'Readmission', 'Patient Experience', 'Timely and Effective Care']
             
@@ -1558,20 +1612,24 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected
                 name1 = "hospital " + hospital[-7:-1]
             
             txt3 = "The latest year of data used was " + str(yr1) + ". "
-            txt3 += "Delta values were computed using the prior year " + str(yr2) + ". "
+            if yr1 != 2021:
+                txt3 += "Delta values were computed using the year " + str(yr2) + ". "
+            elif yr1 == 2021:
+                txt3 += "Delta values are not available for 2021 because this app does not provide overall star rating results for 2020."
+            
             txt4 = ''
             
             if np.isnan(grp_LY) == True and np.isnan(grp_PY) == True:
                 txt3 += "In both years, " + name1 + " was not assigned to a peer group and did not receive a star rating."
             elif np.isnan(grp_LY) == True:
                 txt3 += "In " + str(yr1) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
-            elif np.isnan(grp_PY) == True:
+            elif np.isnan(grp_PY) == True and yr1 != 2021:
                 txt3 += "In " + str(yr2) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
             
-            elif grp_LY == grp_PY:
+            elif grp_LY == grp_PY and yr1 != 2021:
                 numD_LY = ' (hospitals w/ scores in ' + str(int(grp_LY + 2)) + ' domains)'
                 txt3 += "In both years, " + name1 + " was in group " + str(int(grp_LY)) + numD_LY + '.'
-            else:
+            elif grp_LY != grp_PY and yr1 != 2021:
                 numD_LY = ' (hospitals w/ scores in ' + str(int(grp_LY + 2)) + ' domains)'
                 numD_PY = ' (hospitals w/ scores in ' + str(int(grp_PY + 2)) + ' domains)'
                 
@@ -1588,6 +1646,7 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected
         cols = ['Domain', 'Value', 'Change in value from previous year', 
                 'Percentile', 'Change in percentile', 
                 'Weight', 'Change in weight']
+        
         df_table = pd.DataFrame(columns=cols)
         for i in list(df_table):
             df_table[i] = [np.nan]*4
@@ -1661,7 +1720,7 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected
             else:
                 yr2 == 2022
                 
-        if yr1 == 2023:
+        elif yr1 == 2023:
             yr2 = 2022
             if yr2 in yrs:
                 pass
@@ -1670,12 +1729,20 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected
                 
         elif yr1 == 2022:
             yr2 = 2021
+            
+        elif yr1 == 2021:
+            yr2 = 2021
         
         if yr1 in yrs and yr2 in yrs:
             
             tdf_main_LY = tdf_main[tdf_main['Release year'] == yr1]
-            tdf_main_PY = tdf_main[tdf_main['Release year'] == yr2]
             
+            if yr1 == 2021:
+                tdf_main_PY = None
+            
+            if yr1 != 2021:
+                tdf_main_PY = tdf_main[tdf_main['Release year'] == yr2]
+                
             # Get values for latest year
             summ_ls_LY = tdf_main_LY['summary_score'].tolist()
             hosp_ls_LY = tdf_main_LY['Name and Num'].tolist()
@@ -1717,43 +1784,61 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected
             pexp_perc_LY = round(stats.percentileofscore(pexp_ls_LY, pexp_scor_LY), 1)
             proc_perc_LY = round(stats.percentileofscore(proc_ls_LY, proc_scor_LY), 1)
             
+            if yr1 != 2021:
+                # Get values for next latest year
+                summ_ls_PY = tdf_main_PY['summary_score'].tolist()
+                hosp_ls_PY = tdf_main_PY['Name and Num'].tolist()
+                mort_ls_PY = tdf_main_PY['Std_Outcomes_Mortality_score'].tolist()
+                safe_ls_PY = tdf_main_PY['Std_Outcomes_Safety_score'].tolist()
+                read_ls_PY = tdf_main_PY['Std_Outcomes_Readmission_score'].tolist()
+                pexp_ls_PY = tdf_main_PY['Std_PatientExp_score'].tolist()
+                proc_ls_PY = tdf_main_PY['Std_Process_score'].tolist()
+                mort_ws_PY = tdf_main_PY['weight_Outcomes_Mortality'].tolist()
+                safe_ws_PY = tdf_main_PY['weight_Outcomes_Safety'].tolist()
+                read_ws_PY = tdf_main_PY['weight_Outcomes_Readmission'].tolist()
+                pexp_ws_PY = tdf_main_PY['weight_PatientExperience'].tolist()
+                proc_ws_PY = tdf_main_PY['weight_Process'].tolist()
+                
+                i = hosp_ls_PY.index(hospital)
+                
+                summ_scor_PY = summ_ls_PY[i]
+                mort_scor_PY = mort_ls_PY[i]
+                safe_scor_PY = safe_ls_PY[i]
+                read_scor_PY = read_ls_PY[i]
+                pexp_scor_PY = pexp_ls_PY[i]
+                proc_scor_PY = proc_ls_PY[i]
+                mort_wt_PY = mort_ws_PY[i]
+                safe_wt_PY = safe_ws_PY[i]
+                read_wt_PY = read_ws_PY[i]
+                pexp_wt_PY = pexp_ws_PY[i]
+                proc_wt_PY = proc_ws_PY[i]
+                
+                summ_perc_PY = round(stats.percentileofscore(summ_ls_PY, summ_scor_PY), 1)
+                mort_perc_PY = round(stats.percentileofscore(mort_ls_PY, mort_scor_PY), 1)
+                safe_perc_PY = round(stats.percentileofscore(safe_ls_PY, safe_scor_PY), 1)
+                read_perc_PY = round(stats.percentileofscore(read_ls_PY, read_scor_PY), 1)
+                pexp_perc_PY = round(stats.percentileofscore(pexp_ls_PY, pexp_scor_PY), 1)
+                proc_perc_PY = round(stats.percentileofscore(proc_ls_PY, proc_scor_PY), 1)
             
-            # Get values for next latest year
-            summ_ls_PY = tdf_main_PY['summary_score'].tolist()
-            hosp_ls_PY = tdf_main_PY['Name and Num'].tolist()
-            mort_ls_PY = tdf_main_PY['Std_Outcomes_Mortality_score'].tolist()
-            safe_ls_PY = tdf_main_PY['Std_Outcomes_Safety_score'].tolist()
-            read_ls_PY = tdf_main_PY['Std_Outcomes_Readmission_score'].tolist()
-            pexp_ls_PY = tdf_main_PY['Std_PatientExp_score'].tolist()
-            proc_ls_PY = tdf_main_PY['Std_Process_score'].tolist()
-            mort_ws_PY = tdf_main_PY['weight_Outcomes_Mortality'].tolist()
-            safe_ws_PY = tdf_main_PY['weight_Outcomes_Safety'].tolist()
-            read_ws_PY = tdf_main_PY['weight_Outcomes_Readmission'].tolist()
-            pexp_ws_PY = tdf_main_PY['weight_PatientExperience'].tolist()
-            proc_ws_PY = tdf_main_PY['weight_Process'].tolist()
-            
-            i = hosp_ls_PY.index(hospital)
-            
-            summ_scor_PY = summ_ls_PY[i]
-            mort_scor_PY = mort_ls_PY[i]
-            safe_scor_PY = safe_ls_PY[i]
-            read_scor_PY = read_ls_PY[i]
-            pexp_scor_PY = pexp_ls_PY[i]
-            proc_scor_PY = proc_ls_PY[i]
-            mort_wt_PY = mort_ws_PY[i]
-            safe_wt_PY = safe_ws_PY[i]
-            read_wt_PY = read_ws_PY[i]
-            pexp_wt_PY = pexp_ws_PY[i]
-            proc_wt_PY = proc_ws_PY[i]
-            
-            summ_perc_PY = round(stats.percentileofscore(summ_ls_PY, summ_scor_PY), 1)
-            mort_perc_PY = round(stats.percentileofscore(mort_ls_PY, mort_scor_PY), 1)
-            safe_perc_PY = round(stats.percentileofscore(safe_ls_PY, safe_scor_PY), 1)
-            read_perc_PY = round(stats.percentileofscore(read_ls_PY, read_scor_PY), 1)
-            pexp_perc_PY = round(stats.percentileofscore(pexp_ls_PY, pexp_scor_PY), 1)
-            proc_perc_PY = round(stats.percentileofscore(proc_ls_PY, proc_scor_PY), 1)
-            
-            
+            elif yr1 == 2021:
+                summ_scor_PY = np.nan
+                mort_scor_PY = np.nan
+                safe_scor_PY = np.nan
+                read_scor_PY = np.nan
+                pexp_scor_PY = np.nan
+                proc_scor_PY = np.nan
+                mort_wt_PY = np.nan
+                safe_wt_PY = np.nan
+                read_wt_PY = np.nan
+                pexp_wt_PY = np.nan
+                proc_wt_PY = np.nan
+                summ_perc_PY = np.nan
+                mort_perc_PY = np.nan
+                safe_perc_PY = np.nan
+                read_perc_PY = np.nan
+                pexp_perc_PY = np.nan
+                proc_perc_PY = np.nan
+                
             # compute values for columns
             domains = ['Summary Score', 'Mortality', 'Safety of Care', 'Readmission', 'Patient Experience', 'Timely and Effective Care']
             
@@ -1849,8 +1934,13 @@ def update_panel2(hospital, n_clicks, option_hospitals, set_select, yr, selected
                 name1 = "Hospital " + hospital[-7:-1]
             
             txt3 = "The latest year of data used was " + str(yr1) + ". "
-            txt3 += "Delta values were computed using the prior year " + str(yr2) + ". "
-            txt3 += "Delta's are color-coded (green = improved; red = worsened)."
+            
+            if yr1 != 2021:
+                txt3 += "Delta values were computed using the year " + str(yr2) + ". "
+                txt3 += "Delta's are color-coded (green = improved; red = worsened)."
+            elif yr1 == 2021:
+                txt3 = "Delta values are not available for 2021 because this app does not provide overall star rating results for 2020."
+            
             txt4 = ''
             
             return dashT, txt3, txt4
@@ -1912,8 +2002,6 @@ def update_panel3(hospital, yr):
             name1 = "Hospital " + hospital[-7:-1]
         return fig, '7', '8', name1 + " did not receive a star rating in any year included in this app (2020 to " + str(latest_yr) + ")"
         
-    #yrs = sorted(hosp_df['Release year'].unique().tolist())
-    
     tdf_main = tdf_main[tdf_main['Release year'] == yr]
     grp = tdf_main[tdf_main['Name and Num'] == hospital]['cnt_grp'].iloc[0]
     
@@ -2102,9 +2190,6 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
     name = hospital[:-9]
     hosp_df = tdf_main[tdf_main['Name and Num'] == hospital] 
     
-    #print(hosp_df.head())
-    #print(list(hosp_df))
-    
     # Selected hospital has no data among release years
     if hosp_df.shape[0] == 0:    
         txt3 = hospital + " had no data among the CMS Stars release years"
@@ -2140,20 +2225,20 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
     elif yr1 == 2022:
         yr2 = 2021
     
-    print(yr1, yr2)
-
-    #if yr1 in yrs and yr2 in yrs:
-        
     if set_select == 'Measures group':
         
         tdf_main_LY = tdf_main[tdf_main['Release year'] == yr1]
         grp_LY = tdf_main_LY[tdf_main_LY['Name and Num'] == hospital]['cnt_grp'].iloc[0]
         tdf_main_LY = tdf_main_LY[tdf_main_LY['cnt_grp'].isin([grp_LY])]
+        
+        if yr1 == 2021:
+            grp_PY = np.nan
+            tdf_main_PY = None
             
-        tdf_main_PY = tdf_main[tdf_main['Release year'] == yr2]
-        grp_PY = tdf_main_PY[tdf_main_PY['Name and Num'] == hospital]['cnt_grp'].iloc[0]
-        tdf_main_PY = tdf_main_PY[tdf_main_PY['cnt_grp'].isin([grp_PY])]
-    
+        else:
+            tdf_main_PY = tdf_main[tdf_main['Release year'] == yr2]
+            grp_PY = tdf_main_PY[tdf_main_PY['Name and Num'] == hospital]['cnt_grp'].iloc[0]
+            tdf_main_PY = tdf_main_PY[tdf_main_PY['cnt_grp'].isin([grp_PY])]
     
     elif set_select == 'Selected hospitals':
 
@@ -2180,7 +2265,12 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
         
         tdf_main = main_df[main_df['Name and Num'].isin(selected_hospitals + [hospital])]
         tdf_main_LY = tdf_main[tdf_main['Release year'] == yr1]
-        tdf_main_PY = tdf_main[tdf_main['Release year'] == yr2]
+        
+        if yr1 == 2021:
+            tdf_main_PY = None
+
+        else:
+            tdf_main_PY = tdf_main[tdf_main['Release year'] == yr2]            
             
     ######## GET RESULTS FOR LATEST YEAR ##############
     # Get hospitals
@@ -2235,62 +2325,67 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
             pass
     
     
+    if yr1 == 2021:
+        hosp_scors_PY = [np.nan]*len(hosp_scors_LY)
+        hosp_percs_PY = [np.nan]*len(hosp_percs_LY)
+        hosp_wts_PY = [np.nan] * len(hosp_wts_LY)
+        
+    else:
+        ######## GET RESULTS FOR NEXT LATEST YEAR ##############
             
-    ######## GET RESULTS FOR NEXT LATEST YEAR ##############
-            
-    # Get hospitals
-    hosp_ls_PY = tdf_main_PY['Name and Num'].tolist()
-    i = 0
-    try:
-        i = hosp_ls_PY.index(hospital)
-    except:
-        txt3 = hospital + " had no data among the CMS Stars release years"
-        txt4 = "Try selecting another hospital"
-        return dashT, txt3, txt4
-            
-    # Get measures
-            
-    measure_ls = []
-    if score_type == 'Standardized scores':
-        measure_ls = feature_dict[domain + ' (std)']
-    elif score_type == 'Raw scores':
-        measure_ls = feature_dict[domain]
-                
-    hosp_scors_PY = []
-    hosp_percs_PY = []
-    hosp_wts_PY = []
-            
-    # Get values for latest year
-    labels_ls = []
-    for ii, m in enumerate(measure_ls):
+        # Get hospitals
+        hosp_ls_PY = tdf_main_PY['Name and Num'].tolist()
+        i = 0
         try:
-            ls = tdf_main_PY[m].tolist()
-            hosp_scors_PY.append(ls[i])
-            perc = round(stats.percentileofscore(ls, ls[i]), 1)
-            hosp_percs_PY.append(perc)
-            
-            ls2 = feature_dict[domain + ' labels']
-            labels_ls.append(ls2[ii])
-                    
-            # get individual measure weight ... somehow
-                    
-            if domain == 'Patient Experience':
-                pref = 'patient_exp_'   
-            elif domain == 'Readmission':
-                pref = 'readmission_'
-            elif domain == 'Mortality':
-                pref = 'mortality_'   
-            elif domain == 'Safety of Care':
-                pref = 'safety_'   
-            elif domain == 'Timely and Effective Care':
-                pref = 'process_'   
-                        
-            ls = tdf_main_PY[pref + 'measure_wt'].tolist()
-            hosp_wts_PY.append(ls[i])
+            i = hosp_ls_PY.index(hospital)
         except:
-            pass
+            txt3 = hospital + " had no data among the CMS Stars release years"
+            txt4 = "Try selecting another hospital"
+            return dashT, txt3, txt4
                 
-    #########
+        # Get measures
+                
+        measure_ls = []
+        if score_type == 'Standardized scores':
+            measure_ls = feature_dict[domain + ' (std)']
+        elif score_type == 'Raw scores':
+            measure_ls = feature_dict[domain]
+                    
+        hosp_scors_PY = []
+        hosp_percs_PY = []
+        hosp_wts_PY = []
+            
+        # Get values for next latest year
+        labels_ls = []
+        for ii, m in enumerate(measure_ls):
+            try:
+                ls = tdf_main_PY[m].tolist()
+                hosp_scors_PY.append(ls[i])
+                perc = round(stats.percentileofscore(ls, ls[i]), 1)
+                hosp_percs_PY.append(perc)
+                
+                ls2 = feature_dict[domain + ' labels']
+                labels_ls.append(ls2[ii])
+                        
+                # get individual measure weight ... somehow
+                        
+                if domain == 'Patient Experience':
+                    pref = 'patient_exp_'   
+                elif domain == 'Readmission':
+                    pref = 'readmission_'
+                elif domain == 'Mortality':
+                    pref = 'mortality_'   
+                elif domain == 'Safety of Care':
+                    pref = 'safety_'   
+                elif domain == 'Timely and Effective Care':
+                    pref = 'process_'   
+                            
+                ls = tdf_main_PY[pref + 'measure_wt'].tolist()
+                hosp_wts_PY.append(ls[i])
+            except:
+                pass
+                    
+        #########
         
     # Compute values for columns
             
@@ -2393,17 +2488,21 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
         name1 = "hospital " + hospital[-7:-1]
             
     txt3 = "The latest year of data used was " + str(yr1) + ". "
-    txt3 += "Delta values were computed using the prior year " + str(yr2) + ". "
+    if yr1 != 2021:
+        txt3 += "Delta values were computed using the prior year " + str(yr2) + ". "
     txt4 = ''
     
     if set_select == 'Measures group':        
-        if np.isnan(grp_LY) == True and np.isnan(grp_PY) == True:
+        if yr1 == 2021:
+            txt3 = "This application does not provide delta values for 2021 because it does not include overall star results from 2020."
+        
+        elif np.isnan(grp_LY) == True and np.isnan(grp_PY) == True:
             txt3 += "In both years, " + name1 + " was not assigned to a peer group and did not receive a star rating."
         elif np.isnan(grp_LY) == True:
-            txt3 += "In " + str(yr1) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
-        elif np.isnan(grp_PY) == True:
-            txt3 += "In " + str(yr2) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
-                
+            txt3 = "In " + str(yr1) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
+        elif np.isnan(grp_PY) == True and yr1 != 2021:
+            txt3 = "In " + str(yr2) + ', '  + name1 + " was not assigned to a peer group and did not receive a star rating."
+        
         elif grp_LY == grp_PY:
             numD_LY = ' (hospitals w/ scores in ' + str(int(grp_LY + 2)) + ' domains)'
             txt3 += "In both years, " + name1 + " was in group " + str(int(grp_LY)) + numD_LY + '.'
@@ -2414,10 +2513,16 @@ def update_panel4(hospital, n_clicks, option_hospitals, set_select, domain, scor
             txt3 += name1 + " was in group " + str(int(grp_PY)) + numD_PY + " in " + str(yr2)
             txt3 += " and in group " + str(int(grp_LY)) + numD_LY + " in " + str(yr1) + ". "
     
-    if score_type == 'Raw scores':
+    if score_type == 'Raw scores' and yr1 == 2021:
+        txt3 = "This application does not provide delta values for 2021 because it does not include overall star results from 2020."
+        txt4 = ''
+    elif score_type == 'Raw scores':
         txt4 = "Delta's are not color-coded because, unlike standardized scores, greater deltas for raw scores "
         txt4 += "do not necessarily imply improvement."
-        
+    
+    elif score_type != 'Raw scores' and yr1 == 2021:
+        txt3 = "This application does not provide delta values for 2021 because it does not include overall star results from 2020."
+        txt4 = ''
     else:
         txt4 = "Delta's are color-coded (green = improved; red = worsened)."
     
