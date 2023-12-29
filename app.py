@@ -241,24 +241,6 @@ feature_dict['Timely and Effective Care labels'] = ['OP-2: Fibrinolytic therapy 
 
 
 
-######################## SELECTION LISTS #####################################
-PERFORMANCE_SET = ['None', 
-                   'Vizient top performer 2022: Comprehensive academic medical centers',
-                   'Vizient top performer 2022: Large specialized complex care medical centers',
-                   'Vizient top performer 2022: Complex care medical centers',
-                   'Vizient top performer 2022: Community hospitals',
-                   'U.S. News 2022-2023 Best Hospitals Honor Roll',
-                   ] 
-
-P_SET_ls = []
-for p in PERFORMANCE_SET:
-    if p == 'None':
-        P_SET_ls.append([])
-    else:
-        tdf = main_df[main_df[p] == 1]
-        ls = sorted(tdf['Name and Num'].unique().tolist())
-        P_SET_ls.append(ls)
-
 HOSPITALS = main_df['Name and Num'].tolist()
 
 beds = main_df['Beds'].tolist()
@@ -304,17 +286,18 @@ def description_card1():
     return html.Div(
         id="description-card1",
         children=[
-            html.H5("CMS Stars", style={
+            html.H5("Hospital Quality Star Ratings", style={
             'textAlign': 'left',
             }),
            dcc.Markdown("The Centers for Medicare & Medicaid Services (CMS) Overall Hospital Quality Star Ratings " +
-                        "provide summary information on existing publicly reported hospital quality data. "),
+                        "provide summary measures of hospital quality and safety using publicly available data provided by " +
+                        "the CMS Care Compare tool."),
                         
            
-           dcc.Markdown("This app allows users to dive " + 
-                        "into Star Ratings by comparing a hospital to its peer group " +
-                        "and to customized sets of other hospitals. " + 
-                        "This app uses the most recent release of CMS data to provide predictions of 2024 Stars results." )
+           dcc.Markdown("This application allows users to dive into star ratings by comparing a " +
+                        "hospital to its stars group, peer group, and custom sets of other hospitals. " + 
+                        "This application also uses the most recent release of CMS data to provide " +
+                        "predictions of 2024 Stars results." )
                         
         ],
     )
@@ -481,51 +464,6 @@ def generate_control_card1():
             html.Br(),
             html.Br(),
             
-            
-            dbc.Button("Vizient & US News",
-                       id="open-centered5",
-                       style={
-                           "background-color": "#2a8cff",
-                           'width': '80%',
-                               'font-size': 12,
-                           'display': 'inline-block',
-                           'margin-left': '10%',
-                           },
-                ),
-            dbc.Modal(
-                [dbc.ModalBody([
-                                html.P("Select a performance category. Selecting 'None' will cause the app to ignore this filter. Leaving the selection empty will also cause the app to ignore this filter.",
-                                       style={'font-size': 16,}),
-                                dcc.Dropdown(
-                                    id="performance-select1",
-                                    options=[{"label": i, "value": i} for i in PERFORMANCE_SET],
-                                    multi=True,
-                                    value=None,
-                                    optionHeight=50,
-                                    style={
-                                        'font-size': 14,
-                                        }
-                                ),
-                                html.Br(), 
-                                ]),
-                                dbc.ModalFooter(
-                                dbc.Button("Save & Close", id="close-centered5", className="ml-auto",
-                                           style={'font-size': 12,})
-                                ),
-                        ],
-                id="modal-centered5",
-                is_open=False,
-                centered=True,
-                autoFocus=True,
-                size="xl",
-                keyboard=True,
-                fade=True,
-                backdrop=True,
-                ),
-            html.Br(),
-            html.Br(),
-            
-            
             dbc.Button("Hospital names & numbers",
                        id="open-centered2",
                        style={
@@ -640,7 +578,6 @@ app.layout = html.Div([
                                  'box-shadow': '1px 1px 1px grey',
                                  'background-color': '#f0f0f0',
                                  'padding': '10px',
-                                 'margin-bottom': '10px',
             },
         ),
     
@@ -714,12 +651,10 @@ app.layout = html.Div([
                                  'box-shadow': '1px 1px 1px grey',
                                  'background-color': '#f0f0f0',
                                  'padding': '10px',
-                                 #'margin-bottom': '10px',
-                                 'height': '551px',
+                                 'margin-bottom': '10px',
+                                 'height': '100%',
                             },
                 ),
-                html.Br(),
-                html.Br(),
             ],
         ),
     
@@ -787,7 +722,6 @@ app.layout = html.Div([
                         'background-color': '#f0f0f0',
                         'padding': '10px',
                         'margin-bottom': '10px',
-                        #'height': '780px',
                         },
                 ),
                 ],
@@ -941,18 +875,6 @@ def toggle_modal4(n1, n2, is_open):
     return is_open
 
 
-@app.callback(
-    Output("modal-centered5", "is_open"),
-    [Input("open-centered5", "n_clicks"), Input("close-centered5", "n_clicks")],
-    [State("modal-centered5", "is_open")],
-)
-def toggle_modal5(n1, n2, is_open):
-    if n1 or n2:
-        return not is_open
-    return is_open
-
-
-
 
 @app.callback([Output('year-select1', 'options'),
                Output('year-select1', 'value'),
@@ -1002,18 +924,14 @@ def update_output1(value):
      Input("close-centered1", "n_clicks"),
      Input("close-centered3", "n_clicks"),
      Input("close-centered4", "n_clicks"),
-     Input("close-centered5", "n_clicks"),
      ],
     [
      State('states-select1', 'value'),
      State('hospital_type1', 'value'),
      State('control_type1', 'value'),
-     State('performance-select1', 'value'),
      ],
     )
-def update_hospitals(bed_range, n_clicks1, n_clicks3, n_clicks4, n_clicks5, states_vals, htype_vals, ctype_vals, perf_types):
-    
-    #Vizient top performer 2022: Comprehensive academic medical centers
+def update_hospitals(bed_range, n_clicks1, n_clicks3, n_clicks4, states_vals, htype_vals, ctype_vals):
     
     low, high = bed_range
     if high == 2500:
@@ -1029,18 +947,8 @@ def update_hospitals(bed_range, n_clicks1, n_clicks3, n_clicks4, n_clicks5, stat
         if b >= low and b <= high:
             if s in states_vals and ht in htype_vals:
                 if ct in ctype_vals:
+                    hospitals.append(h)
                     
-                    if perf_types is None or len(perf_types) == 0 or 'None' in perf_types:
-                        hospitals.append(h)
-                        
-                    else:
-                        for pi, p in enumerate(PERFORMANCE_SET):
-                            if p == 'None':
-                                continue
-                            elif p in perf_types:
-                                if h in P_SET_ls[pi]:
-                                    hospitals.append(h)
-            
     hospitals = sorted(list(set(hospitals)))
     out_ls1 = [{"label": i, "value": i} for i in hospitals]
     
@@ -1067,13 +975,12 @@ def update_download(n_clicks):
       Input("close-centered2", "n_clicks"),
       Input("close-centered3", "n_clicks"),
       Input("close-centered4", "n_clicks"),
-      Input("close-centered5", "n_clicks"),
       Input("option_hospitals", 'children'),
       ],
       [State("hospital-select1", "value"),
       ],
     )
-def update_map_plot1(beds, n_clicks1, n_clicks2, n_clicks3, n_clicks4, n_clicks5, option_hospitals, selected_hospitals):
+def update_map_plot1(beds, n_clicks1, n_clicks2, n_clicks3, n_clicks4, option_hospitals, selected_hospitals):
     
     figure = go.Figure()
     figure.add_trace(go.Scattermapbox())
@@ -2076,13 +1983,11 @@ def update_panel3(hospital, yr):
     
     # Update layout
     fig.update_layout(
-        #title="Histogram with Vertical Lines",
         xaxis_title="Stars summary score",
         yaxis_title="No. of hospitals",
         showlegend=True,
         margin=dict(l=10, r=10, t=10, b=10),
-        #legend=dict(traceorder="normal"),
-        height=425,
+        height=410,
         paper_bgcolor="#f0f0f0",
         plot_bgcolor="#f0f0f0",
     )
