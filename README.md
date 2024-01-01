@@ -1,10 +1,6 @@
 # cms-stars
 python source code for an open source plotly dash app, used for examining results of CMS' Overall Hospital Quality Star Ratings.
 
-## Description and functionality
-
-The Rush [hospital compare application](https://hospital-compare.herokuapp.com/) is a freely available and lightweight python-based Plotly dashboard application for aggregating, analyzing, and downloading data from the Rush [hospitals-data-archive] (https://github.com/Rush-Quality-Analytics/hospitals-data-archive). This open-source tool allows users to compare data features among hospitals and across time, to explore relationships between features, to design new features and examine them across time, and to download 700+ data features from any of 6,000+ hospitals, and for each year (and most yearly quarters) since 2013.
-
 ## How to run this app
 
 1. After downloading or cloning this repository, open a terminal window or command prompt in the root folder.
@@ -69,7 +65,7 @@ These are automatically installed when following the instructions above.
 ## Files & Directories
 
 <details><summary>app.py</summary>	
-The primary file for running the Rush hospital compare application. This file contains the entirety of source code for the app as well as many comments to explain the application's functionality.
+The primary file for running the application. This file contains the entirety of source code for the app as well as many comments to explain the application's functionality.
 </details>
 
 <details><summary>assets</summary>
