@@ -339,6 +339,7 @@ def run_whatif(raw_data, pnum):
 ################################# LOAD DATA ##################################
 
 main_df = pd.read_pickle('dataframe_data/hosp_stars_dat.pkl')
+
 beds_max = np.nanmax(main_df['Beds'])
 
 whatif_df = pd.read_pickle('dataframe_data/data_for_whatifs.pkl')
@@ -649,9 +650,9 @@ def generate_control_card1():
             
             dcc.Dropdown(
                 id="hospital-select1b",
-                options=[{"label": i, "value": i} for i in []],
+                options=[{"label": i, "value": i} for i in ["RUSH UNIVERSITY MEDICAL CENTER (140119)"]],
                 value="RUSH UNIVERSITY MEDICAL CENTER (140119)",
-                placeholder='Select a focal hospital',
+                #placeholder='Select a focal hospital',
                 optionHeight=75,
                 style={
                     'width': '99%', 
@@ -1833,6 +1834,7 @@ def toggle_modal4(n1, n2, is_open):
                ],
             )
 def update_header_text(hospital):
+    print(hospital)
     
     if hospital is None:
         raise PreventUpdate
@@ -1888,10 +1890,10 @@ def update_yrs(hospital):
     )
 def update_output1(value):
     
-    v1 = value[0]
-    v2 = value[1]
-    if v2 == 2500:
-        v2 = int(beds_max)
+    v1 = int(value[0])
+    v2 = int(value[1])
+    if v2 > 2500:
+        v2 = 2500
     value = [v1, v2]
     
     return 'Number of beds: {}'.format(value)
@@ -3473,6 +3475,7 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
     
     column_names = [col['id'] for col in columns]
     df = pd.DataFrame(data, columns=column_names)
+    print('list(df)', list(df), '\n\n')
     
     if df is None:
         return ["Yikes! There's no data!"]
@@ -3483,6 +3486,7 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
     pnum = pnum.group()
     
     tdf = whatif_df.copy(deep=True)
+    print('list(tdf)', list(tdf), '\n\n')
     
     measures = df['Measure'].tolist()
     vals = df['What-if value'].tolist()
@@ -3491,6 +3495,7 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
         tdf.loc[tdf['PROVIDER_ID'] == pnum, m] = vals[i]
     
     stars_output_df = run_whatif(tdf, pnum)
+    print('list(stars_output_df)', list(stars_output_df), '\n\n')
     
     tdf = stars_output_df[stars_output_df['PROVIDER_ID'] == pnum]
     star = tdf['star'].iloc[0]
@@ -3506,12 +3511,22 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
     
     
     results_yr_df = main_df[main_df['Release year'] == latest_release_yr]
+    print('list(results_yr_df)', list(results_yr_df), '\n\n')
+    
+    print(results_yr_df.shape)
+    results_yr_df.drop_duplicates(inplace=True)
+    print(results_yr_df.shape)
+    results_yr_df = results_yr_df[results_yr_df['Facility ID'].isin(prvdrs1)]
+    print(results_yr_df.shape)
     results_yr_df.sort_values(by='Facility ID', ascending=True, inplace=True)
     prvdrs2 = results_yr_df['Facility ID'].tolist()
     ct = 0
     for p in prvdrs2:
         if 'F' in p:
             ct += 1
+    
+    print(len(prvdrs1), len(list(set(prvdrs1))))
+    print(len(prvdrs2), len(list(set(prvdrs2))))
     
     if prvdrs1 == prvdrs2:
         #print('prvdrs1 == prvdrs2')
@@ -3522,7 +3537,8 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
         for i, p1 in enumerate(prvdrs1):
             p2 = prvdrs2[i]
             if p1 != p2:
-                print(p1,   p2)
+                pass
+                #print(p1,   p2)
                 
     #rumc_df = stars_output_df[stars_output_df['Name and Num'] == hospital]
     #print(rumc_df.head())
@@ -3578,5 +3594,4 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
 
 # Run the server
 if __name__ == "__main__":
-    app.run_server(host='0.0.0.0', debug = False) # modified to run on linux server
-
+    app.run_server(host='0.0.0.0', debug = True) # modified to run on linux server
