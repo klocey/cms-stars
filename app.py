@@ -136,7 +136,7 @@ def run_whatif(raw_data, pnum):
                 'OP_35_ED', 'OP_36', 'H_COMP_1_STAR_RATING', 'H_COMP_2_STAR_RATING', 
                 'H_COMP_3_STAR_RATING', 'H_COMP_5_STAR_RATING', 
                 'H_COMP_6_STAR_RATING', 'H_COMP_7_STAR_RATING', 
-                'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING', 'HCP_COVID_19', 
+                'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING', 'HCP_COVID_19', #'SAFE_USE_OF_OPIOIDS',
                 'IMM_3', 'OP_10', 'OP_13', 'OP_18B', 'OP_2', 'OP_22',
                 'OP_23', 'OP_29', 'OP_3B', 'OP_8', 'PC_01', 'SEP_1',
                ]
@@ -168,7 +168,7 @@ def run_whatif(raw_data, pnum):
                     'READM_30_HIP_KNEE', 'READM_30_HOSP_WIDE',
                     'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22',
                     'PC_01', 'OP_3B', 'OP_18B', 'OP_8', 
-                    'OP_10','OP_13',
+                    'OP_10','OP_13', #'SAFE_USE_OF_OPIOIDS',
                    ]
     for m in rev_measures:
         zscore_df[m] = -1*zscore_df[m]
@@ -211,6 +211,7 @@ def run_whatif(raw_data, pnum):
     # 13 Process measures
     proc_measures = ['HCP_COVID_19', 'IMM_3', 'OP_10', 'OP_13', 'OP_18B', 
                      #'OP_2', 
+                     #'SAFE_USE_OF_OPIOIDS',
                      'OP_22', 'OP_23', 'OP_29', 'OP_3B',  
                      'OP_8', 'PC_01', 'SEP_1']
     final_df['Std_Process_score'] = stats.zscore(zscore_df[proc_measures].mean(axis=1), ddof=ddof, nan_policy='omit')
@@ -506,7 +507,9 @@ feature_dict['Timely and Effective Care'] = ['OP_2', 'OP_3B', 'OP_8',
                                              'OP_22', 'OP_23', 'OP_29',
                                              'OP_33', 'OP_30', 'IMM_3',
                                              'PC_01', 'SEP_1', 'ED_2B',
-                                             'HCP_COVID_19']
+                                             'HCP_COVID_19',
+                                             'SAFE_USE_OF_OPIOIDS',
+                                             ]
 
 feature_dict['Timely and Effective Care (std)'] = ['std_OP_2', 'std_OP_3B', 'std_OP_8',
                                                    'std_OP_10', 'std_OP_13', 'std_OP_18B',
@@ -514,6 +517,7 @@ feature_dict['Timely and Effective Care (std)'] = ['std_OP_2', 'std_OP_3B', 'std
                                                    'std_OP_33', 'std_OP_30', 'std_IMM_3',
                                                    'std_PC_01', 'std_SEP_1', 'std_ED_2B',
                                                    'std_HCP_COVID_19',
+                                                   'std_SAFE_USE_OF_OPIOIDS',
                                             ]
 
 feature_dict['Timely and Effective Care labels'] = ['OP-2: Fibrinolytic therapy w/in 30 min of ED arrival',
@@ -532,6 +536,7 @@ feature_dict['Timely and Effective Care labels'] = ['OP-2: Fibrinolytic therapy 
                                              'SEP-1: Severe Sepsis and Septic Shock',
                                              'ED-2b: Admit decision time to ED depart time, admitted patients',
                                              'HCP COVID-19: COVID-19 Vaccination Coverage Among HCP',
+                                             'Safe use of opioids',
                                             ]
 
 
@@ -3392,7 +3397,9 @@ def update_whatif_table(hospital, n_clicks):
     m5 = ['HCP_COVID_19', 'IMM_3', 'OP_10', 'OP_13', 'OP_18B',
                     #'OP_2',
                     'OP_22', 'OP_23', 'OP_29', 'OP_3B', 
-                    'OP_8', 'PC_01', 'SEP_1']
+                    'OP_8', 'PC_01', 'SEP_1', 
+                    #'SAFE_USE_OF_OPIOIDS',
+                    ]
     domains.extend(['Timely & Effective Care']*len(m5))
     measures.extend(m5)
     
@@ -3402,7 +3409,8 @@ def update_whatif_table(hospital, n_clicks):
                     'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN',
                     'OP_32', 'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE', 
                     'READM_30_HOSP_WIDE', 'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22',
-                    'PC_01', 'OP_3B', 'OP_18B', 'OP_8', 'OP_10','OP_13',
+                    'PC_01', 'OP_3B', 'OP_18B', 'OP_8', 'OP_10','OP_13', 
+                    #'SAFE_USE_OF_OPIOIDS',
                    ]
     
     higher_better = []
