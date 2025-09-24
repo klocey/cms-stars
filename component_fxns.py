@@ -40,8 +40,7 @@ def whatif_table(hospital, whatif_df):
     measures.extend(m4)
     
     m5 = ['HCP_COVID_19', 'IMM_3', 'OP_10', 'OP_13', 'OP_18B',
-                    #'OP_2',
-                    'OP_22', 'OP_23', 'OP_29', 'OP_3B', 
+                    'OP_22', 'OP_23', 'OP_29', 'SAFE_USE_OF_OPIOIDS',
                     'OP_8', 'PC_01', 'SEP_1']
     domains.extend(['Timely & Effective Care']*len(m5))
     measures.extend(m5)
@@ -52,7 +51,7 @@ def whatif_table(hospital, whatif_df):
                     'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN',
                     'OP_32', 'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE', 
                     'READM_30_HOSP_WIDE', 'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22',
-                    'PC_01', 'OP_3B', 'OP_18B', 'OP_8', 'OP_10','OP_13',
+                    'PC_01', 'OP_18B', 'OP_8', 'OP_10','OP_13', 'SAFE_USE_OF_OPIOIDS',
                    ]
     
     higher_better = []
@@ -171,26 +170,33 @@ def measure_table(main_df, jd1, feature_dict, hospital, option_hospitals, select
     yr1 = int(yr)
     yr2 = int()
     
+    if yr1 == 2026:
+        yr2 = 2025
+        if yr2 in yrs:
+            pass
+        else:
+            yr2 = 2024
+            
     if yr1 == 2025:
         yr2 = 2024
         if yr2 in yrs:
             pass
         else:
-            yr2 == 2023
+            yr2 = 2023
             
     if yr1 == 2024:
         yr2 = 2023
         if yr2 in yrs:
             pass
         else:
-            yr2 == 2022
+            yr2 = 2022
         
     if yr1 == 2023:
         yr2 = 2022
         if yr2 in yrs:
             pass
         else:
-            yr2 == 2021
+            yr2 = 2021
             
     elif yr1 == 2022:
         yr2 = 2021

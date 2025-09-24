@@ -27,9 +27,7 @@ from datetime import datetime
 px.set_mapbox_access_token('pk.eyJ1Ijoia2xvY2V5IiwiYSI6ImNrYm9uaWhoYjI0ZDcycW56ZWExODRmYzcifQ.Mb27BYst186G4r5fjju6Pw')
 
 
-latest_release_yr = 2024
-latest_predict_yr = 2025
-
+latest_release_yr = 2025
 
 #########################################################################################
 ################################# CONFIG APP ############################################
@@ -136,9 +134,12 @@ def run_whatif(raw_data, pnum):
                 'OP_35_ED', 'OP_36', 'H_COMP_1_STAR_RATING', 'H_COMP_2_STAR_RATING', 
                 'H_COMP_3_STAR_RATING', 'H_COMP_5_STAR_RATING', 
                 'H_COMP_6_STAR_RATING', 'H_COMP_7_STAR_RATING', 
-                'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING', 'HCP_COVID_19', #'SAFE_USE_OF_OPIOIDS',
-                'IMM_3', 'OP_10', 'OP_13', 'OP_18B', 'OP_2', 'OP_22',
-                'OP_23', 'OP_29', 'OP_3B', 'OP_8', 'PC_01', 'SEP_1',
+                'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING', 'HCP_COVID_19', 
+                'SAFE_USE_OF_OPIOIDS',
+                'IMM_3', 'OP_10', 'OP_13', 'OP_18B',
+                'OP_22',
+                'OP_23', 'OP_29',
+                'OP_8', 'PC_01', 'SEP_1',
                ]
     
     prvdrs = raw_data['PROVIDER_ID']
@@ -167,8 +168,8 @@ def run_whatif(raw_data, pnum):
                     'OP_32', 'READM_30_CABG', 'READM_30_COPD', 
                     'READM_30_HIP_KNEE', 'READM_30_HOSP_WIDE',
                     'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22',
-                    'PC_01', 'OP_3B', 'OP_18B', 'OP_8', 
-                    'OP_10','OP_13', #'SAFE_USE_OF_OPIOIDS',
+                    'PC_01', 'OP_18B', 'OP_8', 
+                    'OP_10','OP_13', 'SAFE_USE_OF_OPIOIDS',
                    ]
     for m in rev_measures:
         zscore_df[m] = -1*zscore_df[m]
@@ -209,10 +210,9 @@ def run_whatif(raw_data, pnum):
     
     
     # 13 Process measures
-    proc_measures = ['HCP_COVID_19', 'IMM_3', 'OP_10', 'OP_13', 'OP_18B', 
-                     #'OP_2', 
-                     #'SAFE_USE_OF_OPIOIDS',
-                     'OP_22', 'OP_23', 'OP_29', 'OP_3B',  
+    proc_measures = ['HCP_COVID_19', 'IMM_3', 'OP_10', 'OP_13', 'OP_18B',
+                     'SAFE_USE_OF_OPIOIDS',
+                     'OP_22', 'OP_23', 'OP_29', 
                      'OP_8', 'PC_01', 'SEP_1']
     final_df['Std_Process_score'] = stats.zscore(zscore_df[proc_measures].mean(axis=1), ddof=ddof, nan_policy='omit')
     final_df['Process_cnt'] = zscore_df[proc_measures].apply(lambda row: row.notna().sum(), axis=1)
@@ -502,7 +502,7 @@ feature_dict['Patient Experience labels'] = ['Nurse Communication',
 
                                         
 
-feature_dict['Timely and Effective Care'] = ['OP_2', 'OP_3B', 'OP_8',
+feature_dict['Timely and Effective Care'] = ['OP_8',
                                              'OP_10', 'OP_13', 'OP_18B',
                                              'OP_22', 'OP_23', 'OP_29',
                                              'OP_33', 'OP_30', 'IMM_3',
@@ -511,7 +511,7 @@ feature_dict['Timely and Effective Care'] = ['OP_2', 'OP_3B', 'OP_8',
                                              'SAFE_USE_OF_OPIOIDS',
                                              ]
 
-feature_dict['Timely and Effective Care (std)'] = ['std_OP_2', 'std_OP_3B', 'std_OP_8',
+feature_dict['Timely and Effective Care (std)'] = ['std_OP_8',
                                                    'std_OP_10', 'std_OP_13', 'std_OP_18B',
                                                    'std_OP_22', 'std_OP_23', 'std_OP_29',
                                                    'std_OP_33', 'std_OP_30', 'std_IMM_3',
@@ -520,8 +520,7 @@ feature_dict['Timely and Effective Care (std)'] = ['std_OP_2', 'std_OP_3B', 'std
                                                    'std_SAFE_USE_OF_OPIOIDS',
                                             ]
 
-feature_dict['Timely and Effective Care labels'] = ['OP-2: Fibrinolytic therapy w/in 30 min of ED arrival',
-                                             'OP-3b: Median time to trans to other facility for Acute Coronary Int.',
+feature_dict['Timely and Effective Care labels'] = [
                                              'OP-8: MRI Lumbar Spine for Low Back Pain',
                                              'OP-10: Abdomen CT Use of Contrast Material',
                                              'OP-13: Cardiac Imaging for Preop Risk for non-cardiac low-risk surg.',
@@ -2155,8 +2154,8 @@ def update_boxes(hospital, filtered_hospitals, year):
     else:
         txt1 = name1 + " did not receive a star rating in " + str(year)
     
-    if year == 2025:
-        txt6 = 'Predictions for 2025: Distribution of Stars summary scores'
+    if year == 2026:
+        txt6 = 'Predictions for 2026: Distribution of Stars summary scores'
     else:
         txt6 = 'Results for ' + str(year) + ": Distribution of Stars summary scores"
         
@@ -2390,26 +2389,33 @@ def update_domains_table(hospital, option_hospitals, selected_hosps_btn, stars_p
         yr1 = int(yr)
         yr2 = None
         
+        if yr1 == 2026:
+            yr2 = 2025
+            if yr2 in yrs:
+                pass
+            else:
+                yr2 = 2024
+                
         if yr1 == 2025:
             yr2 = 2024
             if yr2 in yrs:
                 pass
             else:
-                yr2 == 2023
+                yr2 = 2023
                 
         if yr1 == 2024:
             yr2 = 2023
             if yr2 in yrs:
                 pass
             else:
-                yr2 == 2022
+                yr2 = 2022
                 
         if yr1 == 2023:
             yr2 = 2022
             if yr2 in yrs:
                 pass
             else:
-                yr2 == 2021
+                yr2 = 2021
                 
         elif yr1 == 2022:
             yr2 = 2021
@@ -2712,26 +2718,33 @@ def update_domains_table(hospital, option_hospitals, selected_hosps_btn, stars_p
         yrs = sorted(hosp_df['Release year'].unique().tolist())
         yr1 = int(yr)
         
+        if yr1 == 2026:
+            yr2 = 2025
+            if yr2 in yrs:
+                pass
+            else:
+                yr2 = 2024
+                
         if yr1 == 2025:
             yr2 = 2024
             if yr2 in yrs:
                 pass
             else:
-                yr2 == 2023
+                yr2 = 2023
                 
         if yr1 == 2024:
             yr2 = 2023
             if yr2 in yrs:
                 pass
             else:
-                yr2 == 2022
+                yr2 = 2022
                 
         elif yr1 == 2023:
             yr2 = 2022
             if yr2 in yrs:
                 pass
             else:
-                yr2 == 2021
+                yr2 = 2021
                 
         elif yr1 == 2022:
             yr2 = 2021
@@ -2972,8 +2985,7 @@ def update_domains_table(hospital, option_hospitals, selected_hosps_btn, stars_p
 def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_btn, domain, score_type, yr):    
     
     cols = ['Measure', 'Value', 'Delta value', 
-            'Percentile', 'Delta percentile'] 
-            #'Weight', 'Delta weight']
+            'Percentile', 'Delta percentile']
     
     df_table = pd.DataFrame(columns=cols)
     for i in list(df_table):
@@ -3026,26 +3038,33 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
     yr1 = int(yr)
     yr2 = int()
     
+    if yr1 == 2026:
+        yr2 = 2025
+        if yr2 in yrs:
+            pass
+        else:
+            yr2 = 2024
+            
     if yr1 == 2025:
         yr2 = 2024
         if yr2 in yrs:
             pass
         else:
-            yr2 == 2023
+            yr2 = 2023
             
     if yr1 == 2024:
         yr2 = 2023
         if yr2 in yrs:
             pass
         else:
-            yr2 == 2022
+            yr2 = 2022
         
     if yr1 == 2023:
         yr2 = 2022
         if yr2 in yrs:
             pass
         else:
-            yr2 == 2021
+            yr2 = 2021
             
     elif yr1 == 2022:
         yr2 = 2021
@@ -3129,9 +3148,11 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
     for ii, m in enumerate(measure_ls):
         try:
             ls = tdf_main_LY[m].tolist()
+            i_score = ls[i]
+            hosp_scors_LY.append(i_score)
+            ls = [x for x in ls if x == x]
             
-            hosp_scors_LY.append(ls[i])
-            perc = round(stats.percentileofscore(ls, ls[i]), 1)
+            perc = round(stats.percentileofscore(ls, i_score), 1)
             hosp_percs_LY.append(perc)
             
             ls2 = feature_dict[domain + ' labels']
@@ -3188,15 +3209,19 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
         for ii, m in enumerate(measure_ls):
             try:
                 ls = tdf_main_PY[m].tolist()
-                hosp_scors_PY.append(ls[i])
-                perc = round(stats.percentileofscore(ls, ls[i]), 1)
+                i_score = ls[i]
+                hosp_scors_PY.append(i_score)
+                ls = [x for x in ls if x == x]
+                
+                perc = round(stats.percentileofscore(ls, i_score), 1)
                 hosp_percs_PY.append(perc)
                 
                 ls2 = feature_dict[domain + ' labels']
                 labels_ls.append(ls2[ii])
                         
                 # get individual measure weight ... somehow
-                        
+                  
+                '''
                 if domain == 'Patient Experience':
                     pref = 'patient_exp_'   
                 elif domain == 'Readmission':
@@ -3210,6 +3235,7 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
                             
                 ls = tdf_main_PY[pref + 'measure_wt'].tolist()
                 hosp_wts_PY.append(ls[i])
+                '''
             except:
                 pass
                     
@@ -3395,10 +3421,9 @@ def update_whatif_table(hospital, n_clicks):
     measures.extend(m4)
     
     m5 = ['HCP_COVID_19', 'IMM_3', 'OP_10', 'OP_13', 'OP_18B',
-                    #'OP_2',
-                    'OP_22', 'OP_23', 'OP_29', 'OP_3B', 
+                    'OP_22', 'OP_23', 'OP_29',
                     'OP_8', 'PC_01', 'SEP_1', 
-                    #'SAFE_USE_OF_OPIOIDS',
+                    'SAFE_USE_OF_OPIOIDS',
                     ]
     domains.extend(['Timely & Effective Care']*len(m5))
     measures.extend(m5)
@@ -3409,8 +3434,8 @@ def update_whatif_table(hospital, n_clicks):
                     'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN',
                     'OP_32', 'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE', 
                     'READM_30_HOSP_WIDE', 'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22',
-                    'PC_01', 'OP_3B', 'OP_18B', 'OP_8', 'OP_10','OP_13', 
-                    #'SAFE_USE_OF_OPIOIDS',
+                    'PC_01', 'OP_18B', 'OP_8', 'OP_10','OP_13', 
+                    'SAFE_USE_OF_OPIOIDS',
                    ]
     
     higher_better = []
