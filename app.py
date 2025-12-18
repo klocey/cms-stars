@@ -27,8 +27,6 @@ from datetime import datetime
 px.set_mapbox_access_token('pk.eyJ1Ijoia2xvY2V5IiwiYSI6ImNrYm9uaWhoYjI0ZDcycW56ZWExODRmYzcifQ.Mb27BYst186G4r5fjju6Pw')
 
 
-latest_release_yr = 2025
-
 #########################################################################################
 ################################# CONFIG APP ############################################
 #########################################################################################
@@ -46,9 +44,18 @@ app = dash.Dash(__name__,
 app.config.suppress_callback_exceptions = True
 server = app.server
 
+
+################################# LOAD DATA ##################################
+
+main_df = pd.read_pickle('dataframe_data/hosp_stars_dat.pkl')
+beds_max = np.nanmax(main_df['Beds'])
+
+what_if_df_2025 = pd.read_pickle('dataframe_data/2025_data_for_whatifs.pkl')
+what_if_df_2026 = pd.read_pickle('dataframe_data/2026_data_for_whatifs.pkl')
+
 ##############################################################################
 
-def run_whatif(raw_data, pnum):
+def run_whatif(raw_data, pnum, yr):
     
     def adjust_edge_cases(row, centers, col):
         """
@@ -125,32 +132,96 @@ def run_whatif(raw_data, pnum):
         return df
 
     # Define the measures you're interested in
-    measures = ['MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF',
-                'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP', 'COMP_HIP_KNEE',
-                'HAI_1', 'HAI_2', 'HAI_3', 'HAI_4', 'HAI_5', 'HAI_6', 
-                'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF',
-                'EDAC_30_PN', 'OP_32', 'READM_30_CABG', 'READM_30_COPD',
-                'READM_30_HIP_KNEE', 'READM_30_HOSP_WIDE', 'OP_35_ADM', 
-                'OP_35_ED', 'OP_36', 'H_COMP_1_STAR_RATING', 'H_COMP_2_STAR_RATING', 
-                'H_COMP_3_STAR_RATING', 'H_COMP_5_STAR_RATING', 
-                'H_COMP_6_STAR_RATING', 'H_COMP_7_STAR_RATING', 
-                'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING', 'HCP_COVID_19', 
-                'SAFE_USE_OF_OPIOIDS',
-                'IMM_3', 'OP_10', 'OP_13', 'OP_18B',
-                'OP_22',
-                'OP_23', 'OP_29',
-                'OP_8', 'PC_01', 'SEP_1',
-               ]
+    measures = []
+    rev_measures = []
+    if yr == 2026:
+        measures = [
+            'MORT_30_AMI', 'MORT_30_CABG', 
+            'MORT_30_COPD', 'MORT_30_HF',
+            'MORT_30_PN', 'MORT_30_STK', 
+            'PSI_4_SURG_COMP', 'COMP_HIP_KNEE',
+            'HAI_1', 'HAI_2', 
+            'HAI_3', 'HAI_4', 
+            'HAI_5', 'HAI_6', 
+            'PSI_90_SAFETY', 'EDAC_30_AMI', 
+            'EDAC_30_HF', 'EDAC_30_PN', 
+            'OP_32', 'READM_30_CABG', 
+            'READM_30_COPD', 'READM_30_HIP_KNEE', 
+            'Hybrid_HWR', 'OP_35_ADM', 
+            'OP_35_ED', 'OP_36', 
+            'H_COMP_1_STAR_RATING', 'H_COMP_2_STAR_RATING', 
+            'H_COMP_3_STAR_RATING', 'H_COMP_5_STAR_RATING', 
+            'H_COMP_6_STAR_RATING', 'H_COMP_7_STAR_RATING', 
+            'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING', 
+            'IMM_3', 'OP_10', 
+            'OP_13', 'OP_18B', 
+            'OP_22', 'OP_23', 
+            'OP_29', 'OP_8', 
+            'SEP_1', 'SAFE_USE_OF_OPIOIDS',
+            # lost PC-01 and HCP COVID-19
+           ]
+        
+        rev_measures = ['MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF',
+                        'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP', 'COMP_HIP_KNEE', 
+                        'HAI_1', 'HAI_2', 'HAI_3', 'HAI_4', 'HAI_5', 'HAI_6',
+                        'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN',
+                        'OP_32', 'READM_30_CABG', 'READM_30_COPD', 
+                        'READM_30_HIP_KNEE', 'Hybrid_HWR',
+                        'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22',
+                        'OP_18B', 'OP_8', 
+                        'OP_10','OP_13', 'SAFE_USE_OF_OPIOIDS',
+                       ]
+        
+    elif yr == 2025:
+        measures = ['MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF',
+            'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP', 'COMP_HIP_KNEE',
+            'HAI_1', 'HAI_2', 'HAI_3', 'HAI_4', 'HAI_5', 'HAI_6', 
+            'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF',
+            'EDAC_30_PN', 'OP_32', 'READM_30_CABG', 'READM_30_COPD',
+            'READM_30_HIP_KNEE', 'READM_30_HOSP_WIDE', 'OP_35_ADM', 
+            'OP_35_ED', 'OP_36', 'H_COMP_1_STAR_RATING', 'H_COMP_2_STAR_RATING', 
+            'H_COMP_3_STAR_RATING', 'H_COMP_5_STAR_RATING', 
+            'H_COMP_6_STAR_RATING', 'H_COMP_7_STAR_RATING', 
+            'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING', 'HCP_COVID_19', 
+            'IMM_3', 'OP_10', 'OP_13', 'OP_18B', #'OP_2', 
+            'OP_22',
+            'OP_23', 'OP_29', #'OP_3B', 
+            'OP_8', 'PC_01', 'SEP_1',
+            'SAFE_USE_OF_OPIOIDS',
+           ]
+        
+        rev_measures = ['MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF',
+                        'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP', 'COMP_HIP_KNEE', 
+                        'HAI_1', 'HAI_2', 'HAI_3', 'HAI_4', 'HAI_5', 'HAI_6',
+                        'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN',
+                        'OP_32', 'READM_30_CABG', 'READM_30_COPD', 
+                        'READM_30_HIP_KNEE', 'READM_30_HOSP_WIDE',
+                        'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22',
+                        'PC_01', 'OP_18B', 'OP_8', 
+                        'OP_10','OP_13', 'SAFE_USE_OF_OPIOIDS',
+                       ]
     
-    prvdrs = raw_data['PROVIDER_ID']
-    raw_data = raw_data.filter(items=measures)
-    filtered_data = raw_data.dropna(axis=1, thresh=101)
+    else:
+        pass
+        #print('Error: yr is neither 2025 nor 2026')
+    
+    filtered_data = raw_data.filter(items=['PROVIDER_ID']+measures)
+    
+    # remove any measure (column) that is not reported by at least 100 hospitals
+    filtered_data = filtered_data.dropna(axis=1, thresh=101)
+    
+    ls = filtered_data.columns.drop('PROVIDER_ID').tolist()
+    filtered_data = filtered_data.dropna(how='all', subset = ls, axis=0)
+    #prvdrs = filtered_data['PROVIDER_ID']
+    
     filtered_measures = list(filtered_data)
+    filtered_measures.remove('PROVIDER_ID')
     
     excluded = [item for item in measures if item not in filtered_measures]
-    filtered_data.dropna(how='all', subset=filtered_measures, axis=0, inplace=True)
+    #print('Excluded measure(s):', excluded)
     
-    filtered_data['PROVIDER_ID'] = prvdrs
+    filtered_data.dropna(how='all', subset=filtered_measures, axis=0, inplace=True)
+    #filtered_data['Facility ID'] = prvdrs
     filtered_data = filtered_data[filtered_data.columns[-1:].tolist() + filtered_data.columns[:-1].tolist()]
 
     ddof = 1
@@ -161,46 +232,41 @@ def run_whatif(raw_data, pnum):
             
         zscore_df[m] = stats.zscore(zscore_df[m], ddof=ddof, nan_policy='omit')
     
-    rev_measures = ['MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF',
-                    'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP', 'COMP_HIP_KNEE', 
-                    'HAI_1', 'HAI_2', 'HAI_3', 'HAI_4', 'HAI_5', 'HAI_6',
-                    'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN',
-                    'OP_32', 'READM_30_CABG', 'READM_30_COPD', 
-                    'READM_30_HIP_KNEE', 'READM_30_HOSP_WIDE',
-                    'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22',
-                    'PC_01', 'OP_18B', 'OP_8', 
-                    'OP_10','OP_13', 'SAFE_USE_OF_OPIOIDS',
-                   ]
     for m in rev_measures:
         zscore_df[m] = -1*zscore_df[m]
-        zscore_df[m] = zscore_df[m]
         
     final_df = pd.DataFrame(columns=['PROVIDER_ID'])
     final_df['PROVIDER_ID'] = zscore_df['PROVIDER_ID']
     
-    # 7 Mortality measures
+    # Mortality measures
     mort_measures = ['MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF', 
                      'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP']
     final_df['Std_Outcomes_Mortality_score'] = stats.zscore(zscore_df[mort_measures].mean(axis=1), ddof=ddof, nan_policy='omit')
     final_df['Outcomes_Mortality_cnt'] = zscore_df[mort_measures].apply(lambda row: row.notna().sum(), axis=1)
     
     
-    # 11 Readmission measures
-    readm_measures = ['EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN', 'OP_32',
-                      'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE', 
-                      'READM_30_HOSP_WIDE', 'OP_35_ADM', 'OP_35_ED', 'OP_36']
+    # Readmission measures
+    readm_measures = []
+    if yr == 2025:
+        readm_measures = ['EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN', 'OP_32',
+                          'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE', 
+                          'READM_30_HOSP_WIDE', 'OP_35_ADM', 'OP_35_ED', 'OP_36']
+    elif yr == 2026:
+        readm_measures = ['EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN', 'OP_32',
+                          'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE', 
+                          'Hybrid_HWR', 'OP_35_ADM', 'OP_35_ED', 'OP_36']
     final_df['Std_Outcomes_Readmission_score'] = stats.zscore(zscore_df[readm_measures].mean(axis=1), ddof=ddof, nan_policy='omit')
     final_df['Outcomes_Readmission_cnt'] = zscore_df[readm_measures].apply(lambda row: row.notna().sum(), axis=1)
     
     
-    # 8 SAFETY measures
+    # SAFETY measures
     safety_measures = ['COMP_HIP_KNEE',  'HAI_1', 'HAI_2', 'HAI_3', 'HAI_4', 
                        'HAI_5', 'HAI_6', 'PSI_90_SAFETY']
     final_df['Std_Outcomes_Safety_score'] = stats.zscore(zscore_df[safety_measures].mean(axis=1), ddof=ddof, nan_policy='omit')
     final_df['Outcomes_safety_cnt'] = zscore_df[safety_measures].apply(lambda row: row.notna().sum(), axis=1)
     
     
-    # 8 Patient experience measures
+    # Patient experience measures
     patexp_measures = ['H_COMP_1_STAR_RATING', 'H_COMP_2_STAR_RATING', 
                        'H_COMP_3_STAR_RATING', 'H_COMP_5_STAR_RATING', 
                        'H_COMP_6_STAR_RATING', 'H_COMP_7_STAR_RATING', 
@@ -209,14 +275,26 @@ def run_whatif(raw_data, pnum):
     final_df['Patient_Experience_cnt'] = zscore_df[patexp_measures].apply(lambda row: row.notna().sum(), axis=1)
     
     
-    # 13 Process measures
-    proc_measures = ['HCP_COVID_19', 'IMM_3', 'OP_10', 'OP_13', 'OP_18B',
-                     'SAFE_USE_OF_OPIOIDS',
-                     'OP_22', 'OP_23', 'OP_29', 
-                     'OP_8', 'PC_01', 'SEP_1']
+    proc_measures = []
+    if yr == 2025:
+        proc_measures = ['HCP_COVID_19', 
+                         'IMM_3', 'OP_10', 'OP_13', 'OP_18B',
+                         'SAFE_USE_OF_OPIOIDS',
+                         'OP_22', 'OP_23', 'OP_29', 
+                         'OP_8', 
+                         'PC_01', 
+                         'SEP_1']
+    elif yr == 2026:
+        proc_measures = [#'HCP_COVID_19' <-- retired
+                         'IMM_3', 'OP_10', 'OP_13', 'OP_18B',
+                         'SAFE_USE_OF_OPIOIDS',
+                         'OP_22', 'OP_23', 'OP_29', 
+                         'OP_8', 
+                         #'PC_01' <-- retired
+                         'SEP_1']
+        
     final_df['Std_Process_score'] = stats.zscore(zscore_df[proc_measures].mean(axis=1), ddof=ddof, nan_policy='omit')
     final_df['Process_cnt'] = zscore_df[proc_measures].apply(lambda row: row.notna().sum(), axis=1)
-    
     
     mort_cnts = final_df['Outcomes_Mortality_cnt'].tolist()
     safe_cnts = final_df['Outcomes_safety_cnt'].tolist()
@@ -260,20 +338,38 @@ def run_whatif(raw_data, pnum):
     
     
     # Add standard group measure weights
-    final_df['std_weight_PatientExperience'] = 0.22
-    final_df['std_weight_Readmission'] = 0.22
-    final_df['std_weight_Mortality'] = 0.22
-    final_df['std_weight_safety'] = 0.22
-    final_df['std_weight_Process'] = 0.12
-    
-    # Standard weights and their corresponding score columns
-    weights_info = {
-        'Std_PatientExp_score': ('weight_PatientExperience', 0.22),
-        'Std_Outcomes_Readmission_score': ('weight_Outcomes_Readmission', 0.22),
-        'Std_Outcomes_Mortality_score': ('weight_Outcomes_Mortality', 0.22),
-        'Std_Outcomes_Safety_score': ('weight_Outcomes_Safety', 0.22),
-        'Std_Process_score': ('weight_Process', 0.12)
-    }
+    weights_info = {}
+    if yr == 2025:
+        final_df['std_weight_PatientExperience'] = 0.22
+        final_df['std_weight_Readmission'] = 0.22
+        final_df['std_weight_Mortality'] = 0.22
+        final_df['std_weight_safety'] = 0.22
+        final_df['std_weight_Process'] = 0.12
+        
+        # Standard weights and their corresponding score columns
+        weights_info = {
+            'Std_PatientExp_score': ('weight_PatientExperience', 0.22),
+            'Std_Outcomes_Readmission_score': ('weight_Outcomes_Readmission', 0.22),
+            'Std_Outcomes_Mortality_score': ('weight_Outcomes_Mortality', 0.22),
+            'Std_Outcomes_Safety_score': ('weight_Outcomes_Safety', 0.22),
+            'Std_Process_score': ('weight_Process', 0.12)
+        }
+        
+    elif yr == 2026: # ALL OF THESE WEIGHTS ARE CORRECT
+        final_df['std_weight_PatientExperience'] = 0.197
+        final_df['std_weight_Readmission'] = 0.197
+        final_df['std_weight_Mortality'] = 0.197
+        final_df['std_weight_safety'] = 0.3
+        final_df['std_weight_Process'] = 0.109
+        
+        # Standard weights and their corresponding score columns
+        weights_info = {
+            'Std_PatientExp_score': ('weight_PatientExperience', 0.197),
+            'Std_Outcomes_Readmission_score': ('weight_Outcomes_Readmission', 0.197),
+            'Std_Outcomes_Mortality_score': ('weight_Outcomes_Mortality', 0.197),
+            'Std_Outcomes_Safety_score': ('weight_Outcomes_Safety', 0.3),
+            'Std_Process_score': ('weight_Process', 0.109)
+        }
     
     # Function to adjust weights
     def adjust_weights(row):
@@ -327,216 +423,279 @@ def run_whatif(raw_data, pnum):
     dfg5 = kmeans_clustering(dfg5)
     
     complete_df = pd.concat([dfg3, dfg4, dfg5])
+    
+    '''
+    IGNORE THIS FOR NOW. THERE ARE VERY FEW HOSPITALS (NONE THAT INTEREST ME) THAT WOULD LOSE A STAR
+    if yr == 2026:
+        # ---------------------------------------------------------
+        # 2026 rule:
+        # Any hospital with 5 stars AND in the bottom quartile of
+        # Std_Outcomes_Safety_score is downgraded to 4 stars.
+        # ---------------------------------------------------------
+
+        # Compute safety-score bottom quartile (25th percentile)
+        safety_q1 = complete_df['Std_Outcomes_Safety_score'].quantile(0.25)
+
+        # Identify hospitals to downgrade
+        downgrade_mask = (
+            (complete_df['star'] == 5) &
+            (complete_df['Std_Outcomes_Safety_score'] <= safety_q1)
+        )
+
+        # Apply downgrade
+        complete_df.loc[downgrade_mask, 'star'] = 4
+    '''
+        
+    tdf1 = complete_df[~complete_df['star'].isin([np.nan, float("NaN")])]
+    #print(yr, '|', tdf1.shape[0], '(post what-if) should receive a star rating')
+    
     return complete_df
 
 
 ##############################################################################
-
-
-################################# LOAD DATA ##################################
-
-main_df = pd.read_pickle('dataframe_data/hosp_stars_dat.pkl')
-
-beds_max = np.nanmax(main_df['Beds'])
-
-whatif_df = pd.read_pickle('dataframe_data/data_for_whatifs.pkl')
-
 ######################## Create Features Dictionary #####################################
 
 feature_dict = {}
-feature_dict['filter categories'] = ['State',
-                                     'ZIP Code',
-                                     'County Name',
-                                     'Hospital Type',
-                                     'Hospital Ownership',
-                                     'Emergency Services',
-                                     'Meets criteria for promoting interoperability of EHRs',
-                                     #'Hospital overall rating',  # from previous year
-                                     'cnt_grp',
-                                     'star',
-                                     'Beds',
-                                    ]
+feature_dict['filter categories'] = [
+    'State',
+    'ZIP Code',
+    'County Name',
+    'Hospital Type',
+    'Hospital Ownership',
+    'Emergency Services',
+    'Meets criteria for promoting interoperability of EHRs',
+    #'Hospital overall rating',  # from previous year
+    'cnt_grp',
+    'star',
+    'Beds',
+    ]
 
-feature_dict['date categories'] = ['file_month',
-                                   'file_year',
-                                   'Release year',
-                                  ]
+feature_dict['date categories'] = [
+    'file_month',
+    'file_year',
+    'Release year',
+    ]
 
-feature_dict['Standardized scores'] = ['Std_Outcomes_Mortality_score',
-                                       'Std_Outcomes_Readmission_score',
-                                       'Std_Outcomes_Safety_score',
-                                       'Std_PatientExp_score',
-                                       'Std_Process_score', 
-                                       'summary_score',
-                                      ]
+feature_dict['Standardized scores'] = [
+    'Std_Outcomes_Mortality_score',
+    'Std_Outcomes_Readmission_score',
+    'Std_Outcomes_Safety_score',
+    'Std_PatientExp_score',
+    'Std_Process_score', 
+    'summary_score',
+    ]
 
-feature_dict['Domain weights'] = ['std_weight_PatientExperience',
-                                  'std_weight_Readmission',
-                                  'std_weight_Mortality',
-                                  'std_weight_safety',
-                                  'std_weight_Process',
-                                  'weight_PatientExperience',
-                                  'weight_Outcomes_Readmission',
-                                  'weight_Outcomes_Mortality',
-                                  'weight_Outcomes_Safety',
-                                  'weight_Process',
-                                 ]
+feature_dict['Domain weights'] = [
+    'std_weight_PatientExperience',
+    'std_weight_Readmission',
+    'std_weight_Mortality',
+    'std_weight_safety',
+    'std_weight_Process',
+    'weight_PatientExperience',
+    'weight_Outcomes_Readmission',
+    'weight_Outcomes_Mortality',
+    'weight_Outcomes_Safety',
+    'weight_Process',
+    ]
 
-feature_dict['Domain measure counts'] = ['Outcomes_Mortality_cnt',
-                                         'Outcomes_safety_cnt',
-                                         'Outcomes_Readmission_cnt',
-                                         'Patient_Experience_cnt',
-                                         'Process_cnt',
-                                         'Total_measure_group_cnt',
-                                         'MortSafe_Group_cnt',
-                                        ]
+feature_dict['Domain measure counts'] = [
+    'Outcomes_Mortality_cnt',
+    'Outcomes_safety_cnt',
+    'Outcomes_Readmission_cnt',
+    'Patient_Experience_cnt',
+    'Process_cnt',
+    'Total_measure_group_cnt',
+    'MortSafe_Group_cnt',
+    ]
 
-feature_dict['Stars Domains'] = ['Patient Experience',
-                                 'Readmission',
-                                 'Mortality',
-                                 'Safety of Care',
-                                 'Timely and Effective Care',
-                                ]
-
-
-
-feature_dict['Safety of Care'] = ['HAI_1', 'HAI_2',
-                                  'HAI_3', 'HAI_4',
-                                  'HAI_5', 'HAI_6',
-                                  'COMP_HIP_KNEE', 'PSI_90_SAFETY']
-feature_dict['Safety of Care (std)'] = ['std_HAI_1', 'std_HAI_2', 
-                                        'std_HAI_3', 'std_HAI_4', 
-                                        'std_HAI_5', 'std_HAI_6', 
-                                        'std_COMP_HIP_KNEE', 'std_PSI_90_SAFETY']
-feature_dict['Safety of Care labels'] = ['CLABSI', 'CAUTI',
-                                         'SSI Colon', 'SSI Abd. Hysterectomy',
-                                         'MRSA Bacteremia', 'C. diff. infection',
-                                         'Hip-Knee Complication rate', 'PSI-90']
+feature_dict['Stars Domains'] = [
+    'Patient Experience',
+    'Readmission',
+    'Mortality',
+    'Safety of Care',
+    'Timely and Effective Care',
+    ]
 
 
+feature_dict['Safety of Care'] = [
+    'HAI_1', 'HAI_2',
+    'HAI_3', 'HAI_4',
+    'HAI_5', 'HAI_6',
+    'COMP_HIP_KNEE', 
+    'PSI_90_SAFETY',
+    ]
 
-feature_dict['Readmission'] = ['READM_30_HOSP_WIDE',
-                               'READM_30_HIP_KNEE',
-                               'EDAC_30_HF',
-                               'READM_30_COPD',
-                               'EDAC_30_AMI',
-                               'EDAC_30_PN',
-                               'READM_30_CABG',
-                               'OP_32',
-                               'OP_35_ADM',
-                               'OP_35_ED',
-                               'OP_36']
-feature_dict['Readmission (std)'] = ['std_READM_30_HOSP_WIDE',
-                               'std_READM_30_HIP_KNEE',
-                               'std_EDAC_30_HF',
-                               'std_READM_30_COPD',
-                               'std_EDAC_30_AMI',
-                               'std_EDAC_30_PN',
-                               'std_READM_30_CABG',
-                               'std_OP_32',
-                               'std_OP_35_ADM',
-                               'std_OP_35_ED',
-                               'std_OP_36']
-feature_dict['Readmission labels'] = ['30-Day readmission rate, Hospital-wide',
-                               '30-Day readmission rate, HIP KNEE',
-                               'Excess days in Acute Care, HF',
-                               '30-Day readmission rate, COPD',
-                               'Excess days in Acute Care, AMI',
-                               'Excess days in Acute Care, PN',
-                               '30-Day readmission rate, CABG',
-                               '7-Day visit rate after OP colonoscopy',
-                               'Admissions for Patients Receiving OP Chemo',
-                               'ED Visits for Patients Receiving OP Chemo',
-                               'Hospital Visits after OP Surgery']
+feature_dict['Safety of Care (std)'] = [
+    'std_HAI_1', 'std_HAI_2', 
+    'std_HAI_3', 'std_HAI_4', 
+    'std_HAI_5', 'std_HAI_6', 
+    'std_COMP_HIP_KNEE', 
+    'std_PSI_90_SAFETY',
+    ]
+
+feature_dict['Safety of Care labels'] = [
+    'CLABSI', 
+    'CAUTI',
+    'SSI Colon', 
+    'SSI Abd. Hysterectomy',
+    'MRSA Bacteremia', 
+    'C. diff. infection',
+    'Hip-Knee Complication rate', 
+    'PSI-90',
+    ]
 
 
 
-feature_dict['Mortality'] = ['MORT_30_STK',
-                             'MORT_30_PN',
-                             'MORT_30_HF',
-                             'MORT_30_COPD',
-                             'MORT_30_AMI',
-                             'MORT_30_CABG',
-                             'PSI_4_SURG_COMP']
-feature_dict['Mortality (std)'] = ['std_MORT_30_STK',
-                             'std_MORT_30_PN',
-                             'std_MORT_30_HF',
-                             'std_MORT_30_COPD',
-                             'std_MORT_30_AMI',
-                             'std_MORT_30_CABG',
-                             'std_PSI_4_SURG_COMP']
-feature_dict['Mortality labels'] = ['STK 30-Day Mortality Rate',
-                             'PN 30-Day Mortality Rate',
-                             'HF 30-Day Mortality Rate',
-                             'COPD 30-Day Mortality Rate',
-                             'AMI 30-Day Mortality Rate',
-                             'CABG 30-Day Mortality Rate',
-                             'PSI-04, Death Rate, Surg. Inpatients w/ STCs']
+feature_dict['Readmission'] = [
+    'READM_30_HOSP_WIDE',
+    'Hybrid_HWR',
+    'READM_30_HIP_KNEE',
+    'EDAC_30_HF',
+    'READM_30_COPD',
+    'EDAC_30_AMI',
+    'EDAC_30_PN',
+    'READM_30_CABG',
+    'OP_32',
+    'OP_35_ADM',
+    'OP_35_ED',
+    'OP_36',
+    ]
+
+feature_dict['Readmission (std)'] = [
+    'std_READM_30_HOSP_WIDE',                                 
+    'std_Hybrid_HWR',
+    'std_READM_30_HIP_KNEE',
+    'std_EDAC_30_HF',
+    'std_READM_30_COPD',
+    'std_EDAC_30_AMI',
+    'std_EDAC_30_PN',
+    'std_READM_30_CABG',
+    'std_OP_32',
+    'std_OP_35_ADM',
+    'std_OP_35_ED',
+    'std_OP_36',
+    ]
+
+feature_dict['Readmission labels'] = [
+    '30-Day readmission rate, Hospital-wide',
+    '30-Day readmission rate, Hospital-wide',
+    #'30-Day hybrid hospital-wide all-cause readmission rate',
+    '30-Day readmission rate, HIP KNEE',
+    'Excess days in Acute Care, HF',
+    '30-Day readmission rate, COPD',
+    'Excess days in Acute Care, AMI',
+    'Excess days in Acute Care, PN',
+    '30-Day readmission rate, CABG',
+    '7-Day visit rate after OP colonoscopy',
+    'Admissions for Patients Receiving OP Chemo',
+    'ED Visits for Patients Receiving OP Chemo',
+    'Hospital Visits after OP Surgery',
+    ]
 
 
 
-feature_dict['Patient Experience'] = ['H_COMP_1_STAR_RATING',
-                                      'H_COMP_2_STAR_RATING',
-                                      'H_COMP_3_STAR_RATING',
-                                      'H_COMP_5_STAR_RATING',
-                                      'H_COMP_6_STAR_RATING',
-                                      'H_COMP_7_STAR_RATING',
-                                      'H_GLOB_STAR_RATING', # H-HSP-RATING + H-RECMND / 2
-                                      'H_INDI_STAR_RATING'] # H-CLEAN-HSP + H-QUIET-HSP / 2
-                                      #'H_RESP_RATE_P',
-                                      #'H_NUMB_COMP']
-feature_dict['Patient Experience (std)'] = ['std_H_COMP_1_STAR_RATING', 'std_H_COMP_2_STAR_RATING', 
-                                            'std_H_COMP_3_STAR_RATING', 'std_H_COMP_5_STAR_RATING', 
-                                            'std_H_COMP_6_STAR_RATING', 'std_H_COMP_7_STAR_RATING', 
-                                            'std_H_GLOB_STAR_RATING', 'std_H_INDI_STAR_RATING']
-feature_dict['Patient Experience labels'] = ['Nurse Communication',
-                                      'Doctor Communication',
-                                      'Staff responsiveness',
-                                      'Communication about medicines',
-                                      'Discharge information',
-                                      'Care transition',
-                                      'Overall Rating of Hospital', # H-HSP-RATING + H-RECMND / 2
-                                      'Cleanliness and Quietness'] # H-CLEAN-HSP + H-QUIET-HSP / 2
-                                      #'H_RESP_RATE_P',
-                                      #'H_NUMB_COMP',
+feature_dict['Mortality'] = [
+    'MORT_30_STK',
+    'MORT_30_PN',
+    'MORT_30_HF',
+    'MORT_30_COPD',
+    'MORT_30_AMI',
+    'MORT_30_CABG',
+    'PSI_4_SURG_COMP',
+    ]
+feature_dict['Mortality (std)'] = [
+    'std_MORT_30_STK',
+    'std_MORT_30_PN',
+    'std_MORT_30_HF',
+    'std_MORT_30_COPD',
+    'std_MORT_30_AMI',
+    'std_MORT_30_CABG',
+    'std_PSI_4_SURG_COMP',
+    ]
+feature_dict['Mortality labels'] = [
+    'STK 30-Day Mortality Rate',
+    'PN 30-Day Mortality Rate',
+    'HF 30-Day Mortality Rate',
+    'COPD 30-Day Mortality Rate',
+    'AMI 30-Day Mortality Rate',
+    'CABG 30-Day Mortality Rate',
+    'PSI-04, Death Rate, Surg. Inpatients w/ STCs',
+    ]
+
+
+feature_dict['Patient Experience'] = [
+    'H_COMP_1_STAR_RATING',
+    'H_COMP_2_STAR_RATING',
+    'H_COMP_3_STAR_RATING',
+    'H_COMP_5_STAR_RATING',
+    'H_COMP_6_STAR_RATING',
+    'H_COMP_7_STAR_RATING',
+    'H_GLOB_STAR_RATING', # H-HSP-RATING + H-RECMND / 2
+    'H_INDI_STAR_RATING'] # H-CLEAN-HSP + H-QUIET-HSP / 2
+    #'H_RESP_RATE_P',
+    #'H_NUMB_COMP',
+    
+feature_dict['Patient Experience (std)'] = [
+    'std_H_COMP_1_STAR_RATING', 
+    'std_H_COMP_2_STAR_RATING', 
+    'std_H_COMP_3_STAR_RATING', 
+    'std_H_COMP_5_STAR_RATING', 
+    'std_H_COMP_6_STAR_RATING', 
+    'std_H_COMP_7_STAR_RATING', 
+    'std_H_GLOB_STAR_RATING', 
+    'std_H_INDI_STAR_RATING',
+    ]
+
+feature_dict['Patient Experience labels'] = [
+    'Nurse Communication',
+    'Doctor Communication',
+    'Staff responsiveness',
+    'Communication about medicines',
+    'Discharge information',
+    'Care transition',
+    'Overall Rating of Hospital', # H-HSP-RATING + H-RECMND / 2
+    'Cleanliness and Quietness'] # H-CLEAN-HSP + H-QUIET-HSP / 2
+    #'H_RESP_RATE_P',
+    #'H_NUMB_COMP',
 
                                         
+feature_dict['Timely and Effective Care'] = [
+    'OP_8',
+    'OP_10', 'OP_13', 'OP_18B',
+    'OP_22', 'OP_23', 'OP_29',
+    'OP_33', 'OP_30', 'IMM_3',
+    'PC_01', 'SEP_1', 'ED_2B',
+    'HCP_COVID_19',
+    'SAFE_USE_OF_OPIOIDS',
+    ]
 
-feature_dict['Timely and Effective Care'] = ['OP_8',
-                                             'OP_10', 'OP_13', 'OP_18B',
-                                             'OP_22', 'OP_23', 'OP_29',
-                                             'OP_33', 'OP_30', 'IMM_3',
-                                             'PC_01', 'SEP_1', 'ED_2B',
-                                             'HCP_COVID_19',
-                                             'SAFE_USE_OF_OPIOIDS',
-                                             ]
-
-feature_dict['Timely and Effective Care (std)'] = ['std_OP_8',
-                                                   'std_OP_10', 'std_OP_13', 'std_OP_18B',
-                                                   'std_OP_22', 'std_OP_23', 'std_OP_29',
-                                                   'std_OP_33', 'std_OP_30', 'std_IMM_3',
-                                                   'std_PC_01', 'std_SEP_1', 'std_ED_2B',
-                                                   'std_HCP_COVID_19',
-                                                   'std_SAFE_USE_OF_OPIOIDS',
-                                            ]
+feature_dict['Timely and Effective Care (std)'] = [
+    'std_OP_8',
+    'std_OP_10', 'std_OP_13', 'std_OP_18B',
+    'std_OP_22', 'std_OP_23', 'std_OP_29',
+    'std_OP_33', 'std_OP_30', 'std_IMM_3',
+    'std_PC_01', 'std_SEP_1', 'std_ED_2B',
+    'std_HCP_COVID_19',
+    'std_SAFE_USE_OF_OPIOIDS',
+    ]
 
 feature_dict['Timely and Effective Care labels'] = [
-                                             'OP-8: MRI Lumbar Spine for Low Back Pain',
-                                             'OP-10: Abdomen CT Use of Contrast Material',
-                                             'OP-13: Cardiac Imaging for Preop Risk for non-cardiac low-risk surg.',
-                                             'OP-18b: Median Time from ED Arrival to ED Departure',
-                                             'OP-22: ED-Patient Left Without Being Seen',
-                                             'OP-23: Received interp. of head CT/MRI for stroke w/in 45 min of arrival',
-                                             'OP-29: Endoscopy/Polyp Surv.: appropriate follow-up int.',
-                                             'OP-33: External Beam Radiotherapy for Bone Metastases',
-                                             'OP-30: Endoscopy/Polyp Surv.: avoidance of inappropriate use',
-                                             'IMM-3: Healthcare Personnel Influenza Vaccination',
-                                             'PC-1: Percent babies elect. del. prior to 39 weeks gestation',
-                                             'SEP-1: Severe Sepsis and Septic Shock',
-                                             'ED-2b: Admit decision time to ED depart time, admitted patients',
-                                             'HCP COVID-19: COVID-19 Vaccination Coverage Among HCP',
-                                             'Safe use of opioids',
-                                            ]
+    'OP-8: MRI Lumbar Spine for Low Back Pain',
+    'OP-10: Abdomen CT Use of Contrast Material',
+    'OP-13: Cardiac Imaging for Preop Risk for non-cardiac low-risk surg.',
+    'OP-18b: Median Time from ED Arrival to ED Departure',
+    'OP-22: ED-Patient Left Without Being Seen',
+    'OP-23: Received interp. of head CT/MRI for stroke w/in 45 min of arrival',
+    'OP-29: Endoscopy/Polyp Surv.: appropriate follow-up int.',
+    'OP-33: External Beam Radiotherapy for Bone Metastases',
+    'OP-30: Endoscopy/Polyp Surv.: avoidance of inappropriate use',
+    'IMM-3: Healthcare Personnel Influenza Vaccination',
+    'PC-1: Percent babies elect. del. prior to 39 weeks gestation',
+    'SEP-1: Severe Sepsis and Septic Shock',
+    'ED-2b: Admit decision time to ED depart time, admitted patients',
+    'HCP COVID-19: COVID-19 Vaccination Coverage Among HCP',
+    'Safe use of opioids',
+    ]
 
 
 
@@ -550,7 +709,11 @@ lons = main_df['Lon'].tolist()
 lats = main_df['Lat'].tolist()
 
 main_df['Release year'] = main_df['Release year'].astype(int)
+
 latest_yr = np.max(main_df['Release year'])
+prediction_yr = int(latest_yr)
+latest_release_yr = latest_yr - 1
+
 current_yr = datetime.now().year
 current_mo = datetime.now().month
 
@@ -584,26 +747,6 @@ measures = ['H_COMP_1_STAR_RATING', 'H_COMP_2_STAR_RATING',
                'H_COMP_6_STAR_RATING', 'H_COMP_7_STAR_RATING', 
                'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING']
 
-tdf = whatif_df.filter(items=measures)
-tdf = tdf.round(3)
-mins = tdf.min().tolist()
-maxs = tdf.max().tolist()
-
-tdf = whatif_df[whatif_df['PROVIDER_ID'] == '140119']
-tdf = tdf.filter(items=measures)
-tdf = tdf.round(3)
-
-# Compute values for columns
-        
-cols = ['Measure', 'Actual value', 'Min value', 'Max value', 'What-if value'] 
-df_table = pd.DataFrame(columns=cols)
-df_table['Measure'] = list(tdf)
-df_table['Actual value'] = tdf.iloc[0].tolist()
-df_table['Min value'] = mins
-df_table['Max value'] = maxs
-df_table['What-if value'] = tdf.iloc[0].tolist()
-
-del tdf
 
 ##############################################################################
 
@@ -1333,10 +1476,6 @@ app.layout = html.Div([
                         children=[
                             html.H5(id="what-if-header"),
                             
-                            dcc.Markdown("These analyses enable the recalculation of " + 
-                                         str(latest_release_yr) + " overall star ratings " +
-                                         "using modified measure scores."),
-                                                      
                             dcc.Markdown("**Instructions:**\n* The table below provides the actual " +
                                          "value for your chosen hospital, the min " +
                                          "and max among hospitals, and whether a higher " +
@@ -1350,13 +1489,32 @@ app.layout = html.Div([
                             html.B(id="text-what-if", style={'fontSize':16}),
                             html.Br(),
                             
+                            dcc.Dropdown(
+                                id="year-select4",
+                                options=[{"label": str(i)+'  ', "value": i} for i in list(range(latest_release_yr, latest_yr+1))],
+                                value=latest_yr,
+                                #placeholder='Select a year',
+                                optionHeight=50,
+                                style={
+                                    #'width': '20%', 
+                                    #'font-size': 13,
+                                    'display': 'inline-block',
+                                    #'border-radius': '15px',
+                                    'padding': '0px 30px 0px 20px',
+                                    #"background-color": "#2a8cff",
+                                    'verticalAlign': 'top',
+                                    #'margin-top': '15px',
+                                    #'margin-left': '3%',
+                                    },
+                            ),
+                            
                             dbc.Button("Run What-If",
                                        id="whatif_button",
                                        style={
                                            "background-color": "#2a8cff",
                                            'width': '20%',
                                            'font-size': 12,
-                                           #'display': 'inline-block',
+                                           'display': 'inline-block',
                                            'margin-left': '0%',
                                            'margin-bottom': '1%',
                                            #'verticalAlign': 'top',
@@ -1550,11 +1708,8 @@ app.layout = html.Div([
                             
                             dash_table.DataTable(
                                 id="data_report_plot4",
-                                data=df_table.to_dict('records'),
-                                columns=[
-                                    {'id': c, 'name': c, 'editable': (c == 'What-if value')}  # Make only "What-if value" column editable
-                                    for c in df_table.columns
-                                ],
+                                #data=None,
+                                #columns=None,
                                 page_action='none',
                                 sort_action="native",
                                 sort_mode="multi",
@@ -2091,7 +2246,7 @@ def update_boxes(hospital, filtered_hospitals, year):
         
         tdf_filtered = filtered_hosps_df[filtered_hosps_df['Release year'] == year]
         tdf_filtered = tdf_filtered[~tdf_filtered['summary_score'].isin([np.nan, float("NaN")])]
-        selected_hospitals = tdf_filtered.shape[0] - 1
+        #selected_hospitals = tdf_filtered.shape[0] - 1
         perc_of_chosen = round(stats.percentileofscore(tdf_filtered['summary_score'], score), 1)
         txt5 = str(perc_of_chosen) + " percentile of hospitals in your filters"
         
@@ -2118,7 +2273,7 @@ def update_boxes(hospital, filtered_hospitals, year):
         pexp_perc = round(stats.percentileofscore(pexp_ls, pexp_scor), 1)
         proc_perc = round(stats.percentileofscore(proc_ls, proc_scor), 1)
         
-        domains = ['Mortality', 'Safety of Care', 'Readmission', 'Patient Experience', 'Timely and Effective Care']
+        #domains = ['Mortality', 'Safety of Care', 'Readmission', 'Patient Experience', 'Timely and Effective Care']
         domain_cols = ['Std_Outcomes_Mortality_score', 'Std_Outcomes_Safety_score', 'Std_Outcomes_Readmission_score', 
                        'Std_PatientExp_score', 'Std_Process_score']
         
@@ -2126,7 +2281,7 @@ def update_boxes(hospital, filtered_hospitals, year):
         scor_ls = [mort_scor, safe_scor, read_scor, pexp_scor, proc_scor]
         
         i = perc_ls.index(max(perc_ls))
-        best_domain = domains[i]
+        #best_domain = domains[i]
         best_domain_score = scor_ls[i]
         best_domain_perc1 = perc_ls[i]
         
@@ -2136,7 +2291,7 @@ def update_boxes(hospital, filtered_hospitals, year):
         best_domain_perc2 = stats.percentileofscore(scores_ls, best_domain_score)
         
         i = perc_ls.index(min(perc_ls))
-        worst_domain = domains[i]
+        #worst_domain = domains[i]
         worst_domain_score = scor_ls[i]
         worst_domain_perc1 = perc_ls[i]
         
@@ -3178,7 +3333,7 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
     if yr1 == 2021:
         hosp_scors_PY = [np.nan]*len(hosp_scors_LY)
         hosp_percs_PY = [np.nan]*len(hosp_percs_LY)
-        hosp_wts_PY = [np.nan] * len(hosp_wts_LY)
+        #hosp_wts_PY = [np.nan] * len(hosp_wts_LY)
         
     else:
         ######## GET RESULTS FOR NEXT LATEST YEAR ##############
@@ -3202,7 +3357,7 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
                     
         hosp_scors_PY = []
         hosp_percs_PY = []
-        hosp_wts_PY = []
+        #hosp_wts_PY = []
             
         # Get values for next latest year
         labels_ls = []
@@ -3387,9 +3542,10 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
       ],
      [Input("hospital-select1b", "value"),
       Input("reset-table", "n_clicks"),
+      Input("year-select4", "value"),
       ],
     )
-def update_whatif_table(hospital, n_clicks):    
+def update_whatif_table(hospital, n_clicks, yr):    
     
     if hospital is None:
         raise PreventUpdate
@@ -3397,46 +3553,95 @@ def update_whatif_table(hospital, n_clicks):
     measures = []
     domains = []
           
-    m1 = ['H_COMP_1_STAR_RATING', 'H_COMP_2_STAR_RATING', 
-                   'H_COMP_3_STAR_RATING', 'H_COMP_5_STAR_RATING', 
-                   'H_COMP_6_STAR_RATING', 'H_COMP_7_STAR_RATING', 
-                   'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING']
+    m1 = [
+        'H_COMP_1_STAR_RATING', 'H_COMP_2_STAR_RATING',
+        'H_COMP_3_STAR_RATING', 'H_COMP_5_STAR_RATING', 
+        'H_COMP_6_STAR_RATING', 'H_COMP_7_STAR_RATING', 
+        'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING',
+        ]
     domains.extend(['Patient Experience']*len(m1))
     measures.extend(m1)
     
-    m2 = ['EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN', 'OP_32',
-                  'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE', 
-                  'READM_30_HOSP_WIDE', 'OP_35_ADM', 'OP_35_ED', 'OP_36']
+    m2 = []
+    if yr == 2025:
+        m2 = [
+            'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN', 'OP_32',
+            'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE',
+            'READM_30_HOSP_WIDE', 'OP_35_ADM', 'OP_35_ED', 'OP_36',
+            ]
+    elif yr == 2026:
+        m2 = [
+            'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN', 'OP_32',
+            'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE',
+            'Hybrid_HWR', 'OP_35_ADM', 'OP_35_ED', 'OP_36',
+            ]
+        
     domains.extend(['Readmission']*len(m2))
     measures.extend(m2)
     
-    m3 = ['MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF', 
-                 'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP']
+    m3 = [
+        'MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF', 
+        'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP',
+        ]
     domains.extend(['Mortality']*len(m3))
     measures.extend(m3)
     
     m4 = ['COMP_HIP_KNEE',  'HAI_1', 'HAI_2', 'HAI_3', 'HAI_4', 
-                   'HAI_5', 'HAI_6', 'PSI_90_SAFETY']
+          'HAI_5', 'HAI_6', 'PSI_90_SAFETY',
+          ]
     domains.extend(['Safety of Care']*len(m4))
     measures.extend(m4)
     
-    m5 = ['HCP_COVID_19', 'IMM_3', 'OP_10', 'OP_13', 'OP_18B',
-                    'OP_22', 'OP_23', 'OP_29',
-                    'OP_8', 'PC_01', 'SEP_1', 
-                    'SAFE_USE_OF_OPIOIDS',
-                    ]
+    m5 = []
+    if yr == 2025:
+        m5 = [
+            'HCP_COVID_19', 
+            'IMM_3', 'OP_10', 'OP_13', 'OP_18B',
+            'OP_22', 'OP_23', 'OP_29',
+            'OP_8', 
+            'PC_01', 
+            'SEP_1', 
+            'SAFE_USE_OF_OPIOIDS',
+            ]
+        
+        rev_measures = [
+            'MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF',
+            'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP', 'COMP_HIP_KNEE', 
+            'HAI_1', 'HAI_2', 'HAI_3', 'HAI_4', 'HAI_5', 'HAI_6',
+            'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN',
+            'OP_32', 'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE', 
+            'READM_30_HOSP_WIDE', 'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22',
+            'PC_01', 
+            'OP_18B', 'OP_8', 'OP_10','OP_13', 
+            'SAFE_USE_OF_OPIOIDS',
+            ]
+        
+    elif yr == 2026:
+        m5 = [
+            #'HCP_COVID_19', 
+            'IMM_3', 'OP_10', 'OP_13', 'OP_18B',
+            'OP_22', 'OP_23', 'OP_29',
+            'OP_8', 
+            #'PC_01', 
+            'SEP_1', 
+            'SAFE_USE_OF_OPIOIDS',
+            ]
+        
+        rev_measures = [
+            'MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF',
+            'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP', 'COMP_HIP_KNEE', 
+            'HAI_1', 'HAI_2', 'HAI_3', 'HAI_4', 'HAI_5', 'HAI_6',
+            'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN',
+            'OP_32', 'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE', 
+            'Hybrid_HWR', 
+            'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22',
+            #'PC_01', 
+            'OP_18B', 'OP_8', 'OP_10','OP_13', 
+            'SAFE_USE_OF_OPIOIDS',
+            ]
+    
     domains.extend(['Timely & Effective Care']*len(m5))
     measures.extend(m5)
-    
-    rev_measures = ['MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF',
-                    'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP', 'COMP_HIP_KNEE', 
-                    'HAI_1', 'HAI_2', 'HAI_3', 'HAI_4', 'HAI_5', 'HAI_6',
-                    'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN',
-                    'OP_32', 'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE', 
-                    'READM_30_HOSP_WIDE', 'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22',
-                    'PC_01', 'OP_18B', 'OP_8', 'OP_10','OP_13', 
-                    'SAFE_USE_OF_OPIOIDS',
-                   ]
     
     higher_better = []
     for m in measures:
@@ -3445,41 +3650,56 @@ def update_whatif_table(hospital, n_clicks):
         else:
             higher_better.append('Yes')
     
-    tdf = whatif_df.filter(items=measures)
-    tdf = tdf.round(3)
-    mins = tdf.min().tolist()
-    maxs = tdf.max().tolist()
-
     pnum = re.search(r'\d{6}', hospital)
     pnum = pnum.group()
     
+    tdf = main_df[main_df['Release year'] == yr]
+
+    # Keep Facility ID for filtering, but compute stats only on measures
+    tdf = tdf[['Facility ID'] + measures]
+    
     try:
-        tdf = whatif_df[whatif_df['PROVIDER_ID'] == pnum]
-        tdf = tdf.filter(items=measures)
-        tdf = tdf.round(3)
-    except:
+        tdf = tdf[tdf['Facility ID'] == pnum]
+    except Exception:
         return {}, {}, {}, hospital + ' has no data in the CMS Care Compare release that is used to make predictions.'
     
-    cols = ['Domain', 'Measure', 'Higher is better', 'Actual value', 'Min value', 'Max value',
-            'What-if value'] 
-            
-    df_table = pd.DataFrame(columns=cols)
-    df_table['Domain'] = domains
-    df_table['Measure'] = list(tdf)
-    df_table['Higher is better'] = higher_better
-    df_table['Actual value'] = tdf.iloc[0].tolist()
-    df_table['Min value'] = mins
-    df_table['Max value'] = maxs
-    df_table['What-if value'] = tdf.iloc[0].tolist()
+    if tdf.empty:
+        return {}, {}, {}, hospital + ' has no data in the CMS Care Compare release that is used to make predictions.'
     
-    data=df_table.to_dict('records')
-    columns=[
-            {'id': c, 'name': c, 'editable': (c == 'What-if value')}  # Make only "What-if value" column editable
-            for c in df_table.columns
-        ]
+    # --- Extract measure values ONLY (exclude Facility ID) ---
+    #actual_vals = tdf.loc[:, measures].iloc[0].tolist()
+    actual_vals = tdf.loc[:, measures].iloc[0].round(6).tolist()
+    
+    # --- Min / Max across all hospitals, measures only ---
+    mins = main_df.loc[
+        main_df['Release year'] == yr, measures
+    ].min().round(3).tolist()
+    
+    maxs = main_df.loc[
+        main_df['Release year'] == yr, measures
+    ].max().round(3).tolist()
+    
+    df_table = pd.DataFrame({
+        'Domain': domains,
+        'Measure': measures,
+        'Higher is better': higher_better,
+        'Actual value': actual_vals,
+        'Min value': mins,
+        'Max value': maxs,
+        'What-if value': actual_vals
+    })
+    
+    data = df_table.to_dict('records')
+    
+    columns = [
+        {'id': c, 'name': c, 'editable': (c == 'What-if value')}
+        for c in df_table.columns
+    ]
     
     return data, columns, df_table.to_json(), ''
+
     
+
 
 
 @app.callback(
@@ -3496,10 +3716,11 @@ def update_whatif_table(hospital, n_clicks):
       State("data_report_plot4", "columns"),
       State("hospital-select1b", "value"), 
       State("option_hospitals", 'children'),
+      State("year-select4", "value"),
       ],
      prevent_initial_call=True,
     )
-def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals):   
+def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals, yr):   
     
     column_names = [col['id'] for col in columns]
     df = pd.DataFrame(data, columns=column_names)
@@ -3512,50 +3733,66 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
     pnum = re.search(r'\d{6}', hospital)
     pnum = pnum.group()
     
-    tdf = whatif_df.copy(deep=True)
-    
+    tdf = None
+    if yr == 2025:
+        tdf = what_if_df_2025.copy()
+    elif yr == 2026:
+        tdf = what_if_df_2026.copy()
+        
     measures = df['Measure'].tolist()
     vals = df['What-if value'].tolist()
-    
     for i, m in enumerate(measures):
         tdf.loc[tdf['PROVIDER_ID'] == pnum, m] = vals[i]
-    
-    stars_output_df = run_whatif(tdf, pnum)
+        #print(pnum, '|', m, ':', vals[i])
+
+    stars_output_df = run_whatif(tdf, pnum, yr)
     
     tdf = stars_output_df[stars_output_df['PROVIDER_ID'] == pnum]
     star = tdf['star'].iloc[0]
     score = tdf['summary_score'].iloc[0]
     grp = tdf['cnt_grp'].iloc[0]
     
+    #print('pnum:', pnum)
+    #print('star:', star)
+    #print('score:', score)
+    #print('grp:', grp)
+    #print(tdf['PROVIDER_ID'].iloc[0], '\n')
+    
     stars_output_df.sort_values(by='PROVIDER_ID', ascending=True, inplace=True)
     prvdrs1 = stars_output_df['PROVIDER_ID'].tolist()
+    #print(len(prvdrs1), 'hospitals')
+    #print(len(list(set(prvdrs1))), 'hospitals')
+    
     ct = 0
     for p in prvdrs1:
         if 'F' in p:
             ct += 1
+    #print(ct, 'with F')
     
-    
-    results_yr_df = main_df[main_df['Release year'] == latest_release_yr]
-    
+    results_yr_df = main_df[main_df['Release year'] == yr]
     results_yr_df.drop_duplicates(inplace=True)
     results_yr_df = results_yr_df[results_yr_df['Facility ID'].isin(prvdrs1)]
+    
     results_yr_df.sort_values(by='Facility ID', ascending=True, inplace=True)
     prvdrs2 = results_yr_df['Facility ID'].tolist()
+    #print(len(prvdrs2), 'hospitals')
+    #print(len(list(set(prvdrs2))), 'hospitals')
+    
     ct = 0
     for p in prvdrs2:
         if 'F' in p:
             ct += 1
+    #print(ct, 'with F\n')
     
     if prvdrs1 == prvdrs2:
         stars_output_df['Name and Num'] = results_yr_df['Name and Num'].tolist()
-        
         
     else:
         for i, p1 in enumerate(prvdrs1):
             p2 = prvdrs2[i]
             if p1 != p2:
                 pass
-                print('Error, p1 != p2:', p1,   p2)
+                #print('Error, p1 != p2:', p1, p2)
                 
     txt1 = ''
     txt2 = ''
@@ -3573,8 +3810,8 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
         txt1 += " is the only hospital in the data."
         return txt1, '', '', '', ''
     
-    for i, m in enumerate(measures):
-        tdf.loc[tdf['PROVIDER_ID'] == pnum, m] = vals[i]
+    #for i, m in enumerate(measures):
+    #    tdf.loc[tdf['Facility ID'] == pnum, m] = vals[i]
     
     
     txt1 = str(star) + ' Star'
@@ -3600,6 +3837,8 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
 
     
     return txt1, txt2, txt3, txt4, txt5
+
+
 #########################################################################################
 
 
