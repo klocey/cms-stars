@@ -1414,6 +1414,25 @@ app.layout = html.Div([
                             html.Hr(),
                             html.B(id="text10", style={'fontSize':16}),
                             html.P(id="text11", style={'fontSize':16}),
+                            html.Hr(),
+                            dcc.Dropdown(
+                                id="score-select1",
+                                options=[{"label": i, "value": i} for i in ['Standardized scores', 'Raw scores']],
+                                value='Standardized scores',
+                                placeholder='Select a score type',
+                                optionHeight=50,
+                                style={
+                                    'width': '250px', 
+                                    'font-size': 16,
+                                    'display': 'inline-block',
+                                    'padding': '0px 30px 0px 20px',
+                                    'margin-left': '2%',
+                                    'margin-top': '1%',
+                                    'margin-bottom': '1%',
+                                    }
+                                ),
+                            html.Div(id="data_report_plot5"),
+                            
                             ],
                         style={
                             'width': '100%',
@@ -1708,19 +1727,24 @@ app.layout = html.Div([
                             
                             dash_table.DataTable(
                                 id="data_report_plot4",
-                                #data=None,
-                                #columns=None,
                                 page_action='none',
                                 sort_action="native",
                                 sort_mode="multi",
-                                style_table={'overflowY': 'auto'},
-                                style_cell={
-                                    'padding': '5px',
-                                    #'minWidth': '140px', 'width': '160px', 'maxWidth': '160px',
-                                    'whiteSpace': 'normal', 'textAlign': 'center'
+                                style_table={
+                                    'overflowY': 'auto',   # vertical scroll
+                                    'overflowX': 'auto',   # horizontal scroll
+                                    'minWidth': '100%'     # ensures table can expand horizontally
                                 },
-                                
+                                style_cell={
+                                    'padding': '10px',
+                                    'whiteSpace': 'normal',
+                                    'textAlign': 'center',
+                                    'minWidth': '100px',  # can tweak per column
+                                    'width': '200px',
+                                    'maxWidth': '400px',
+                                },
                             ),
+
                             
                             ]   ,
                         style={
@@ -3531,7 +3555,123 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
     
     return dashT, txt
     
+
+
+
+@app.callback(
+    Output("data_report_plot5", "children"),
+    [
+        Input("hospital-select1b", "value"),
+        Input("domain-select1", "value"),
+        Input("score-select1", "value"),
+        Input("year-select3", "value"),
+    ],
+    prevent_initial_call=True
+)
+def update_measure_timeseries(hospital, domain, score_type, yr):
+
+    if hospital is None:
+        return None
+
+    hosp_df = main_df[main_df['Name and Num'] == hospital].copy()
+    if hosp_df.empty:
+        return None
+
+    # Determine measures + labels
+    if score_type == 'Standardized scores':
+        measures = feature_dict[domain + ' (std)']
+    else:
+        measures = feature_dict[domain]
+
+    labels = feature_dict[domain + ' labels']
+
+    fig = go.Figure()
+
+    for m, lab in zip(measures, labels):
+
+        if m not in hosp_df.columns:
+            continue
+
+        # Build clean, sorted time series
+        ts = (
+            hosp_df[['Release year', m]]
+            .dropna(subset=[m])
+            .sort_values('Release year')
+        )
+
+        if ts.shape[0] < 2:
+            # Single point still useful, but don't draw a misleading line
+            mode = 'markers'
+        else:
+            mode = 'lines+markers'
+
+        fig.add_trace(
+            go.Scatter(
+                x=ts['Release year'].astype(int),
+                y=ts[m],
+                mode=mode,
+                name=lab,
+                connectgaps=False,   # <-- critical: no fake connections
+                hovertemplate=(
+                    f"<b>{lab}</b><br>"
+                    "Release year: %{x}<br>"
+                    "Score: %{y:.3f}"
+                    "<extra></extra>"
+                ),
+            )
+        )
+
+    # Axis labels
+    ylab = (
+        "Standardized score"
+        if score_type == 'Standardized scores'
+        else "Raw score"
+    )
+
+    fig.update_layout(
+        paper_bgcolor = '#4d4d4d',
+        #plot_bgcolor = '#e6e6e6',
+        #title=f"{domain} measures over time",
+        xaxis=dict(
+            title="Release year",
+            tickmode="linear",
+            dtick=1,
+        ),
+        yaxis=dict(title=ylab),
+        template="plotly_dark",
+        margin=dict(l=80, r=40, t=60 + 5*len(labels), b=40),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="left",
+            x=0,
+        ),
+    )
+
+    # Optional: reference line for standardized scores
+    if score_type == 'Standardized scores':
+        fig.add_hline(
+            y=0,
+            line_dash="dot",
+            line_color="white",
+            #opacity=0.6,
+        )
+
+    height = 30 + len(labels)
+    height = str(height) + "vw"
+    return dcc.Graph(
+        figure=fig,
+        config={"displayModeBar": False},
+        style={"height": height, 
+               "width": "50vw",
+               },
+    )
+
+
+
     
+
     
     
 @app.callback(
@@ -3679,9 +3819,29 @@ def update_whatif_table(hospital, n_clicks, yr):
         main_df['Release year'] == yr, measures
     ].max().round(3).tolist()
     
+    # Map Measure-ID to Measure Name using feature_dict
+    measure_names = []
+    for m in measures:
+        # Check each domain for the measure
+        found = False
+        for domain in feature_dict['Stars Domains']:
+            if m in feature_dict[domain]:
+                idx = feature_dict[domain].index(m)
+                measure_names.append(feature_dict[domain + ' labels'][idx])
+                found = True
+                break
+            elif m in feature_dict.get(domain + ' (std)', []):
+                idx = feature_dict[domain + ' (std)'].index(m)
+                measure_names.append(feature_dict[domain + ' labels'][idx])
+                found = True
+                break
+        if not found:
+            measure_names.append(m)  # fallback to ID if no label found
+        
     df_table = pd.DataFrame({
         'Domain': domains,
-        'Measure': measures,
+        'Measure-ID': measures,
+        'Measure Name': measure_names,
         'Higher is better': higher_better,
         'Actual value': actual_vals,
         'Min value': mins,
@@ -3739,7 +3899,7 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
     elif yr == 2026:
         tdf = what_if_df_2026.copy()
         
-    measures = df['Measure'].tolist()
+    measures = df['Measure-ID'].tolist()
     vals = df['What-if value'].tolist()
     for i, m in enumerate(measures):
         tdf.loc[tdf['PROVIDER_ID'] == pnum, m] = vals[i]
@@ -3844,4 +4004,4 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
 
 # Run the server
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', debug = False) # modified to run on linux server
+    app.run(host='0.0.0.0', debug = True) # modified to run on linux server
