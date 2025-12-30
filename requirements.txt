@@ -10,3 +10,4 @@ DateTime==5.5
 dash_bootstrap_components==2.0.0
 lxml==5.3.1
 scikit-learn==1.6.1
+dash-draggable==0.1.2

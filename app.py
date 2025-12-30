@@ -24,6 +24,8 @@ import random
 import json
 from datetime import datetime
 
+import dash_draggable
+
 px.set_mapbox_access_token('pk.eyJ1Ijoia2xvY2V5IiwiYSI6ImNrYm9uaWhoYjI0ZDcycW56ZWExODRmYzcifQ.Mb27BYst186G4r5fjju6Pw')
 
 
@@ -212,16 +214,13 @@ def run_whatif(raw_data, pnum, yr):
     
     ls = filtered_data.columns.drop('PROVIDER_ID').tolist()
     filtered_data = filtered_data.dropna(how='all', subset = ls, axis=0)
-    #prvdrs = filtered_data['PROVIDER_ID']
     
     filtered_measures = list(filtered_data)
     filtered_measures.remove('PROVIDER_ID')
     
     excluded = [item for item in measures if item not in filtered_measures]
-    #print('Excluded measure(s):', excluded)
     
     filtered_data.dropna(how='all', subset=filtered_measures, axis=0, inplace=True)
-    #filtered_data['Facility ID'] = prvdrs
     filtered_data = filtered_data[filtered_data.columns[-1:].tolist() + filtered_data.columns[:-1].tolist()]
 
     ddof = 1
@@ -447,7 +446,6 @@ def run_whatif(raw_data, pnum, yr):
     '''
         
     tdf1 = complete_df[~complete_df['star'].isin([np.nan, float("NaN")])]
-    #print(yr, '|', tdf1.shape[0], '(post what-if) should receive a star rating')
     
     return complete_df
 
@@ -485,6 +483,14 @@ feature_dict['Standardized scores'] = [
     'summary_score',
     ]
 
+feature_dict['Stars Domains'] = [
+    'Mortality',
+    'Readmission',
+    'Safety of Care',
+    'Patient Experience',
+    'Timely and Effective Care',
+    ]
+
 feature_dict['Domain weights'] = [
     'std_weight_PatientExperience',
     'std_weight_Readmission',
@@ -506,14 +512,6 @@ feature_dict['Domain measure counts'] = [
     'Process_cnt',
     'Total_measure_group_cnt',
     'MortSafe_Group_cnt',
-    ]
-
-feature_dict['Stars Domains'] = [
-    'Patient Experience',
-    'Readmission',
-    'Mortality',
-    'Safety of Care',
-    'Timely and Effective Care',
     ]
 
 
@@ -763,13 +761,11 @@ def description_card1():
             html.H5("Hospital Quality Star Ratings", style={
             'textAlign': 'left',
             }),
-           dcc.Markdown("The Centers for Medicare & Medicaid Services (CMS) Overall Hospital Quality Star Ratings " +
-                        "provide summary measures of hospital quality and safety using publicly available data provided by " +
-                        "CMS Care Compare."),
-                        
-           
-           html.Br(),
-           #dcc.Markdown("Begin by choosing a hospital and a set of hospitals to compare to." )
+           dcc.Markdown("The Centers for Medicare & Medicaid Services (CMS) Overall Hospital " +
+                        "Quality Star Ratings are summary measures of hospital quality " +
+                        "based on safety, mortality, readmissions, patient ratings, " +
+                        "and timely and effective care. This app enables deep dives into " +
+                        "the past, present, and future ratings of all CMS certified hospitals."),
                         
         ],
     )
@@ -805,25 +801,26 @@ def generate_control_card1():
                     'padding': '0px',
                     #'margin-top': '15px',
                     'margin-left': '1px',
+                    'margin-bottom': '20px',
                     }
             ),
             
-            html.Br(),
-            html.H5("Set your filters"),
-            html.P("The hospital you chose will be compared to those in these filters."),
-            
-            html.Br(),
+            html.H5("Set filters"),
+            html.P("Your chosen hospital can be compared to a subset. All hospitals are chosen by default."),
             
             dbc.Button("Hospital types",
-                       id="open-centered4",
-                       style={
-                           "background-color": "#2a8cff",
-                           'width': '80%',
-                               'font-size': 12,
-                           'display': 'inline-block',
-                           'margin-left': '10%',
-                           },
-                ),
+                        id="open-centered4",
+                        n_clicks=0,
+                        className="custom-button",
+                        style={
+                            'display': 'inline-block',
+                            'margin-left': '10%',
+                            #'margin-bottom': '1%',
+                            'width': '80%',
+                            'font-size': 12,
+                            'margin-bottom': '5px',
+                            },
+                       ),
             dbc.Modal(
                 [dbc.ModalBody([
                                 html.P("Select hospital types",style={'font-size': 16,}),
@@ -854,19 +851,19 @@ def generate_control_card1():
                 backdrop=True,
                 ),
             html.Br(),
-            html.Br(),
-            
             
             dbc.Button("Hospital ownership",
-                       id="open-centered1",
-                       style={
-                           "background-color": "#2a8cff",
-                           'width': '80%',
-                               'font-size': 12,
-                           'display': 'inline-block',
-                           'margin-left': '10%',
-                           },
-                ),
+                        id="open-centered1",
+                        n_clicks=0,
+                        className="custom-button",
+                        style={
+                            'display': 'inline-block',
+                            'margin-left': '10%',
+                            'margin-bottom': '5px',
+                            'width': '80%',
+                            'font-size': 12,
+                            },
+                       ),
             dbc.Modal(
                 [dbc.ModalBody([
                                 html.P("Select hospital ownership types",style={'font-size': 16,}),
@@ -898,19 +895,19 @@ def generate_control_card1():
                 backdrop=True,
                 ),
             html.Br(),
-            html.Br(),
-            
             
             dbc.Button("US states & territories",
-                       id="open-centered3",
-                       style={
-                           "background-color": "#2a8cff",
-                           'width': '80%',
-                               'font-size': 12,
-                           'display': 'inline-block',
-                           'margin-left': '10%',
-                           },
-                ),
+                        id="open-centered3",
+                        n_clicks=0,
+                        className="custom-button",
+                        style={
+                            'display': 'inline-block',
+                            'margin-left': '10%',
+                            #'margin-bottom': '1%',
+                            'width': '80%',
+                            'font-size': 12,
+                            },
+                       ),
             dbc.Modal(
                 [dbc.ModalBody([
                                 html.P("Select a set of US states and/or territories",style={'font-size': 16,}),
@@ -955,9 +952,9 @@ def generate_control_card1():
                         1000: '1000',
                         1500: '1500',
                         2000: '2000',
-                        2500: 'Max',
+                        2700: '2700',
                     },
-                value=[0, beds_max],
+                value=[0, 2700],
                 ),
             
             html.Br(),
@@ -1051,26 +1048,29 @@ app.layout = html.Div([
                                 #"background-color": "#2a8cff",
                                 'verticalAlign': 'bottom',
                                 #'margin-top': '15px',
-                                'margin-left': '3%',
+                                'margin-left': '1%',
                                 },
                         ),
                         
-                        dbc.Button("Compare to Filtered Hospitals",
-                                   id="selected_hosps_btn1",
-                                   style={
-                                       "background-color": "#2a8cff",
-                                       'font-size': 12,
+                        dbc.Button("Compare to Filtered Hospitals", 
+                                    id="selected_hosps_btn1",
+                                    n_clicks=0,
+                                    className="custom-button",
+                                    style={
                                        'display': 'inline-block',
-                                       'margin-left': '5%',
+                                       'margin-left': '8%',
+                                       "fontSize": "12px",
                                        },
                                    ),
+                        
                         dbc.Button("Compare to Stars Peer Group",
-                                   id="stars_peers_btn1",
-                                   style={
-                                       "background-color": "#2a8cff",
-                                       'font-size': 12,
+                                    id="stars_peers_btn1",
+                                    n_clicks=0,
+                                    className="custom-button",
+                                    style={
                                        'display': 'inline-block',
-                                       'margin-left': '5%',
+                                       'margin-left': '4%',
+                                       "fontSize": "12px",
                                        },
                                    ),
                         html.Hr(),
@@ -1213,22 +1213,23 @@ app.layout = html.Div([
     html.Div(
         children=[
             
-            dbc.Button("Examine scores of measure domains",
-                       id="open-that",
-                       style={
-                           "background-color": "#2a8cff",
-                           'font-size': 14,
-                           #'display': 'inline-block',
-                           'margin-left': '3%',
-                           "background-color": "#2a8cff",
-                           'width': '30%',
-                           'height': '50%',
-                           'padding': '10px',
-                           'white-space': 'normal',  # Allow text to wrap
-                           #'overflow': 'hidden',  # Optional: Hide any overflow
-                           'word-wrap': 'break-word',  # Optional: Break long words
-                           },
-                ),
+            dbc.Button("Examine measure domains",
+                        id="open-that",
+                        n_clicks=0,
+                        className="custom-button",
+                        style={
+                            'font-size': 14,
+                            'display': 'inline-block',
+                            'vertical-align': 'top',
+                            'margin-left': '2%',
+                            'margin-top': '0.5%',
+                            'width': '30%',
+                            #'white-space': 'normal',  # Allow text to wrap
+                            #'overflow': 'hidden',  # Optional: Hide any overflow
+                            #'word-wrap': 'break-word',  # Optional: Break long words
+                            },
+                       ),
+            
             dbc.Modal(
                 [dbc.ModalBody([
                     html.Div(
@@ -1247,26 +1248,32 @@ app.layout = html.Div([
                                     'margin-left': '0%',
                                     },
                                 ),
+                            
                             dbc.Button("Compare to Filtered Hospitals",
-                                       id="selected_hosps_btn2",
-                                       style={
-                                           "background-color": "#2a8cff",
-                                           'font-size': 12,
-                                           'display': 'inline-block',
-                                           'vertical-align': 'top',
-                                           'margin-left': '3%',
-                                           },
+                                        id="selected_hosps_btn2",
+                                        n_clicks=0,
+                                        className="custom-button",
+                                        style={
+                                            'font-size': 12,
+                                            'display': 'inline-block',
+                                            'vertical-align': 'top',
+                                            'margin-left': '3%',
+                                            },
                                        ),
+                            
+                            
                             dbc.Button("Compare to Stars Peer Group",
-                                       id="stars_peers_btn2",
-                                       style={
-                                           "background-color": "#2a8cff",
-                                           'font-size': 12,
-                                           'display': 'inline-block',
-                                           'vertical-align': 'top',
-                                           'margin-left': '3%',
-                                           },
+                                        id="stars_peers_btn2",
+                                        n_clicks=0,
+                                        className="custom-button",
+                                        style={
+                                            'font-size': 12,
+                                            'display': 'inline-block',
+                                            'vertical-align': 'top',
+                                            'margin-left': '3%',
+                                            },
                                        ),
+                            
                             html.Hr(),
                             html.Br(),
                             html.Div(id="data_report_plot2"),
@@ -1276,6 +1283,38 @@ app.layout = html.Div([
                                           'margin-left':'1%',
                                           },
                                    ),
+                            
+                            html.Hr(),
+                            dcc.Dropdown(
+                                id="score-select2",
+                                options=[{"label": i, "value": i} for i in ['Percentiles', 'Domain scores']],
+                                value='Percentiles',
+                                placeholder='Select a score type',
+                                optionHeight=50,
+                                style={
+                                    'width': '250px', 
+                                    'font-size': 16,
+                                    'display': 'inline-block',
+                                    'padding': '0px 30px 0px 20px',
+                                    'margin-left': '2%',
+                                    'margin-top': '1%',
+                                    'margin-bottom': '1%',
+                                    }
+                                ),
+                            
+                            
+                            dash_draggable.GridLayout(
+                                id="draggable-1",
+                                clearSavedLayout=True,
+                                children=[
+                                    html.Div(id="data_report_plot6",
+                                             ),
+                                    ],
+                                ncols=11,
+                                nrows=5,        
+                                height=70,
+                                ),
+                            
                             ],
                         style={
                             'width': '100%',
@@ -1319,29 +1358,48 @@ app.layout = html.Div([
                 backdrop=True,
                 ),
             
-            dbc.Button("Examine scores for individual measures",
-                       id="open-theother",
-                       style={
-                           "background-color": "#2a8cff",
-                           'font-size': 14,
-                           #'display': 'inline-block',
-                           'margin-left': '3%',
-                           #'margin-top': '1%',
-                           "background-color": "#2a8cff",
-                           'width': '30%',
-                           'height': '50%',
-                           'padding': '10px',
-                           'white-space': 'normal',  # Allow text to wrap
-                           #'overflow': 'hidden',  # Optional: Hide any overflow
-                           'word-wrap': 'break-word',  # Optional: Break long words
-                           },
-                ),
-            
+            dbc.Button("Examine individual measures",
+                        id="open-theother",
+                        n_clicks=0,
+                        className="custom-button",
+                        style={
+                            'font-size': 14,
+                            'display': 'inline-block',
+                            'vertical-align': 'top',
+                            'margin-left': '3%',
+                            'margin-top': '0.5%',
+                            'width': '30%',
+                            #'white-space': 'normal',  # Allow text to wrap
+                            #'overflow': 'hidden',  # Optional: Hide any overflow
+                            #'word-wrap': 'break-word',  # Optional: Break long words
+                            },
+                       ),
             dbc.Modal(
                 [dbc.ModalBody([
                     html.Div(
                         children=[
-                            html.H5("Scores within domains"),
+                            html.H5("Examine individual measures"),
+                            
+                            dbc.Button("Compare to Filtered Hospitals",
+                                        id="selected_hosps_btn3",
+                                        n_clicks=0,
+                                        className="custom-button",
+                                        style={
+                                            'display': 'inline-block',
+                                            },
+                                       ),
+                            
+                            dbc.Button("Compare to Stars Peer Group",
+                                       id="stars_peers_btn3",
+                                        n_clicks=0,
+                                        className="custom-button",
+                                        style={
+                                            'display': 'inline-block',
+                                            'margin-left': '2%',
+                                            },
+                                       ),
+                            
+                            html.Br(),
                             dcc.Dropdown(
                                 id='year-select3',
                                 options=[{"label": i, "value": i} for i in list(range(2021, latest_yr+1))],
@@ -1350,34 +1408,13 @@ app.layout = html.Div([
                                 optionHeight=50,
                                 style={
                                     'display': 'inline-block',
-                                    'padding': '0px 30px 0px 20px',
-                                    'verticalAlign': 'top',
+                                    #'padding': '0px 30px 0px 20px',
+                                    #'verticalAlign': 'top',
+                                    'width': '7vw', 
                                     'margin-left': '0%',
                                     },
                                 ),
                             
-                            dbc.Button("Compare to Filtered Hospitals",
-                                       id="selected_hosps_btn3",
-                                       style={
-                                           "background-color": "#2a8cff",
-                                           'font-size': 12,
-                                           'display': 'inline-block',
-                                           'vertical-align': 'top',
-                                           'margin-left': '3%',
-                                           },
-                                       ),
-                            dbc.Button("Compare to Stars Peer Group",
-                                       id="stars_peers_btn3",
-                                       style={
-                                           "background-color": "#2a8cff",
-                                           'font-size': 12,
-                                           #'display': 'inline-block',
-                                           'vertical-align': 'top',
-                                           'margin-left': '3%',
-                                           },
-                                       ),
-                            
-                            html.Br(),
                             dcc.Dropdown(
                                 id='domain-select1',
                                 options=[{"label": i, "value": i} for i in ['Patient Experience', 'Readmission', 'Mortality', 'Safety of Care', 'Timely and Effective Care']],
@@ -1417,8 +1454,8 @@ app.layout = html.Div([
                             html.Hr(),
                             dcc.Dropdown(
                                 id="score-select1",
-                                options=[{"label": i, "value": i} for i in ['Standardized scores', 'Raw scores']],
-                                value='Standardized scores',
+                                options=[{"label": i, "value": i} for i in ['Percentiles', 'Standardized scores', 'Raw scores']],
+                                value='Percentiles',
                                 placeholder='Select a score type',
                                 optionHeight=50,
                                 style={
@@ -1431,8 +1468,19 @@ app.layout = html.Div([
                                     'margin-bottom': '1%',
                                     }
                                 ),
-                            html.Div(id="data_report_plot5"),
                             
+                            
+                            dash_draggable.GridLayout(
+                                id="draggable-2",
+                                clearSavedLayout=True,
+                                children=[
+                                    html.Div(id="data_report_plot5",
+                                             ),
+                                    ],
+                                ncols=11,
+                                nrows=5,        
+                                height=70,
+                                ),
                             ],
                         style={
                             'width': '100%',
@@ -1473,22 +1521,20 @@ app.layout = html.Div([
             
             dbc.Button("Run what-if scenarios",
                        id="open-what-if",
-                       style={
-                           "background-color": "#2a8cff",
-                           'font-size': 14,
-                           #'display': 'inline-block',
-                           #'margin-top': '2%',
-                           'margin-left': '3%',
-                           "background-color": "#2a8cff",
-                           'width': '30%',
-                           'height': '50%',
-                           'padding': '10px',
-                           'white-space': 'normal',  # Allow text to wrap
-                           #'overflow': 'hidden',  # Optional: Hide any overflow
-                           'word-wrap': 'break-word',  # Optional: Break long words
-                           },
-                ),
-            
+                        n_clicks=0,
+                        className="custom-button",
+                        style={
+                            'font-size': 14,
+                            'display': 'inline-block',
+                            'vertical-align': 'top',
+                            'margin-left': '3%',
+                            'margin-top': '0.5%',
+                            'width': '30%',
+                            #'white-space': 'normal',  # Allow text to wrap
+                            #'overflow': 'hidden',  # Optional: Hide any overflow
+                            #'word-wrap': 'break-word',  # Optional: Break long words
+                            },
+                       ),
             dbc.Modal(
                 [dbc.ModalBody([
                     html.Div(
@@ -1519,7 +1565,7 @@ app.layout = html.Div([
                                     #'font-size': 13,
                                     'display': 'inline-block',
                                     #'border-radius': '15px',
-                                    'padding': '0px 30px 0px 20px',
+                                    'width': '7vw',
                                     #"background-color": "#2a8cff",
                                     'verticalAlign': 'top',
                                     #'margin-top': '15px',
@@ -1528,43 +1574,45 @@ app.layout = html.Div([
                             ),
                             
                             dbc.Button("Run What-If",
-                                       id="whatif_button",
-                                       style={
-                                           "background-color": "#2a8cff",
-                                           'width': '20%',
-                                           'font-size': 12,
-                                           'display': 'inline-block',
-                                           'margin-left': '0%',
-                                           'margin-bottom': '1%',
-                                           #'verticalAlign': 'top',
-                                           },
-                                ),
+                                        id="whatif_button",
+                                        n_clicks=0,
+                                        className="custom-button",
+                                        style={
+                                            'display': 'inline-block',
+                                            'margin-left': '2%',
+                                            'margin-bottom': '1%',
+                                            'width': '20%',
+                                            'font-size': 12,
+                                            },
+                                       ),
                             
                             dbc.Button("View what-if results",
                                        id="open-what-if-results",
-                                       style={
-                                           "background-color": "#2a8cff",
-                                           'width': '20%',
-                                           'font-size': 12,
-                                           #'display': 'inline-block',
-                                           'margin-left': '2%',
-                                           'margin-bottom': '1%',
-                                           #'verticalAlign': 'top',
-                                           },
-                                ),
+                                        n_clicks=0,
+                                        className="custom-button",
+                                        style={
+                                            'width': '20%',
+                                            'font-size': 12,
+                                            #'display': 'inline-block',
+                                            'margin-left': '2%',
+                                            'margin-bottom': '1%',
+                                            #'verticalAlign': 'top',
+                                            },
+                                       ),
                             
                             dbc.Button("Reset the table",
-                                       id="reset-table",
-                                       style={
-                                           "background-color": "#2a8cff",
-                                           'width': '20%',
-                                           'font-size': 12,
-                                           #'display': 'inline-block',
-                                           'margin-left': '2%',
-                                           'margin-bottom': '1%',
-                                           #'verticalAlign': 'top',
-                                           },
-                                ),
+                                        id="reset-table",
+                                        n_clicks=0,
+                                        className="custom-button",
+                                        style={
+                                            'width': '20%',
+                                            'font-size': 12,
+                                            #'display': 'inline-block',
+                                            'margin-left': '2%',
+                                            'margin-bottom': '1%',
+                                            #'verticalAlign': 'top',
+                                            },
+                                       ),
                             
                             dbc.Modal(
                                 [dbc.ModalBody([
@@ -1784,45 +1832,42 @@ app.layout = html.Div([
                 backdrop=True,
                 ),
             
-            
             dbc.Button("Download data", 
                         id="download-btn",
+                        n_clicks=0,
+                        className="custom-button",
                         style={
-                            "background-color": "#2a8cff",
                             'font-size': 14,
                             'display': 'inline-block',
+                            'vertical-align': 'top',
+                            'margin-left': '2%',
                             'margin-top': '1%',
-                            'margin-left': '3%',
-                            "background-color": "#2a8cff",
                             'width': '30%',
-                            'height': '50%',
-                            'padding': '10px',
-                            'white-space': 'normal',  # Allow text to wrap
+                            #'white-space': 'normal',  # Allow text to wrap
                             #'overflow': 'hidden',  # Optional: Hide any overflow
-                            'word-wrap': 'break-word',  # Optional: Break long words
+                            #'word-wrap': 'break-word',  # Optional: Break long words
                             },
-                        ),
+                       ),
             dcc.Download(id="data-download",
                          ),
             
             
             dbc.Button("View map of filtered hospitals",
                        id="open-this",
-                       style={
-                           "background-color": "#2a8cff",
-                           'font-size': 14,
-                           #'display': 'inline-block',
-                           'margin-top': '1%',
-                           'margin-left': '3%',
-                           "background-color": "#2a8cff",
-                           'width': '30%',
-                           'height': '50%',
-                           'padding': '10px',
-                           'white-space': 'normal',  # Allow text to wrap
-                           #'overflow': 'hidden',  # Optional: Hide any overflow
-                           'word-wrap': 'break-word',  # Optional: Break long words
-                           },
-                ),
+                        n_clicks=0,
+                        className="custom-button",
+                        style={
+                            'font-size': 14,
+                            'display': 'inline-block',
+                            'vertical-align': 'top',
+                            'margin-left': '3%',
+                            'margin-top': '1%',
+                            'width': '30%',
+                            #'white-space': 'normal',  # Allow text to wrap
+                            #'overflow': 'hidden',  # Optional: Hide any overflow
+                            #'word-wrap': 'break-word',  # Optional: Break long words
+                            },
+                       ),
             dbc.Modal(
                 [dbc.ModalBody([
                     
@@ -1885,8 +1930,8 @@ app.layout = html.Div([
                'background-color': '#f0f0f0',
                'padding': '10px',
                'margin-left': '2%',
-               'margin-bottom': '10px',
-               'margin-top': '1%',
+               'margin-bottom': '100px',
+               'margin-top': '0.5%',
                'height': '100%',
                },
         ),
@@ -2070,8 +2115,8 @@ def update_output1(value):
     
     v1 = int(value[0])
     v2 = int(value[1])
-    if v2 > 2500:
-        v2 = 2500
+    if v2 > 2700:
+        v2 = 2700
     value = [v1, v2]
     
     return 'Number of beds: {}'.format(value)
@@ -2095,9 +2140,11 @@ def update_output1(value):
 def update_hospitals(bed_range, n_clicks1, n_clicks3, n_clicks4, states_vals, htype_vals, ctype_vals):
     
     low, high = bed_range
-    if high == 2500:
+    
+    if high == 2700:
         high = beds_max
-        
+    
+    #print('HOSPITALS:', len(HOSPITALS))
     hospitals = []
     for i, h in enumerate(HOSPITALS):
         
@@ -2105,11 +2152,11 @@ def update_hospitals(bed_range, n_clicks1, n_clicks3, n_clicks4, states_vals, ht
         s = states[i]
         ht = htypes[i]
         ct = ctypes[i]
-        if b >= low and b <= high:
-            if s in states_vals and ht in htype_vals:
-                if ct in ctype_vals:
+        if (b >= low and b <= high) or np.isnan(b):
+            if s in states_vals and ht in htype_vals and ct in ctype_vals:
                     hospitals.append(h)
                     
+    #print('hospitals:', len(hospitals))                    
     hospitals = sorted(list(set(hospitals)))
     hospitals_full = sorted(list(set(HOSPITALS)))
     out_ls2 = [{"label": i, "value": i} for i in hospitals_full]
@@ -2265,13 +2312,13 @@ def update_boxes(hospital, filtered_hospitals, year):
             
         tdf_peer = main_df[(main_df['cnt_grp'] == grp) & (main_df['Release year'] == year)]
         tdf_peer = tdf_peer[tdf_peer['star'] == star]
-        perc_of_peer = round(stats.percentileofscore(tdf_peer['summary_score'], score), 1)
+        perc_of_peer = round(percentileofscore(tdf_peer['summary_score'], score, nan_policy='omit'), 1)
         txt4 = str(perc_of_peer) + " percentile of " + str(star) + " Star group " + str(grp) + " hospitals"
         
         tdf_filtered = filtered_hosps_df[filtered_hosps_df['Release year'] == year]
         tdf_filtered = tdf_filtered[~tdf_filtered['summary_score'].isin([np.nan, float("NaN")])]
         #selected_hospitals = tdf_filtered.shape[0] - 1
-        perc_of_chosen = round(stats.percentileofscore(tdf_filtered['summary_score'], score), 1)
+        perc_of_chosen = round(percentileofscore(tdf_filtered['summary_score'], score, nan_policy='omit'), 1)
         txt5 = str(perc_of_chosen) + " percentile of hospitals in your filters"
         
         #numD = ' hospitals w/ scores in ' + str(int(grp)) + ' domains'
@@ -2291,11 +2338,11 @@ def update_boxes(hospital, filtered_hospitals, year):
         pexp_scor = pexp_ls[i]
         proc_scor = proc_ls[i]
         
-        mort_perc = round(stats.percentileofscore(mort_ls, mort_scor), 1)
-        safe_perc = round(stats.percentileofscore(safe_ls, safe_scor), 1)
-        read_perc = round(stats.percentileofscore(read_ls, read_scor), 1)
-        pexp_perc = round(stats.percentileofscore(pexp_ls, pexp_scor), 1)
-        proc_perc = round(stats.percentileofscore(proc_ls, proc_scor), 1)
+        mort_perc = round(percentileofscore(mort_ls, mort_scor, nan_policy='omit'), 1)
+        safe_perc = round(percentileofscore(safe_ls, safe_scor, nan_policy='omit'), 1)
+        read_perc = round(percentileofscore(read_ls, read_scor, nan_policy='omit'), 1)
+        pexp_perc = round(percentileofscore(pexp_ls, pexp_scor, nan_policy='omit'), 1)
+        proc_perc = round(percentileofscore(proc_ls, proc_scor, nan_policy='omit'), 1)
         
         #domains = ['Mortality', 'Safety of Care', 'Readmission', 'Patient Experience', 'Timely and Effective Care']
         domain_cols = ['Std_Outcomes_Mortality_score', 'Std_Outcomes_Safety_score', 'Std_Outcomes_Readmission_score', 
@@ -2312,7 +2359,7 @@ def update_boxes(hospital, filtered_hospitals, year):
         
         tdf = tdf_filtered[tdf_filtered['Release year'] == year]
         scores_ls = tdf[domain_cols[i]].tolist()
-        best_domain_perc2 = stats.percentileofscore(scores_ls, best_domain_score)
+        best_domain_perc2 = percentileofscore(scores_ls, best_domain_score, nan_policy='omit')
         
         i = perc_ls.index(min(perc_ls))
         #worst_domain = domains[i]
@@ -2320,7 +2367,7 @@ def update_boxes(hospital, filtered_hospitals, year):
         worst_domain_perc1 = perc_ls[i]
         
         scores_ls = tdf[domain_cols[i]].tolist()
-        worst_domain_perc2 = stats.percentileofscore(scores_ls, worst_domain_score)
+        worst_domain_perc2 = percentileofscore(scores_ls, worst_domain_score, nan_policy='omit')
         
         best_domain_score = str(round(best_domain_score, 3))
         best_domain_perc1 = str(round(best_domain_perc1, 1))
@@ -2403,10 +2450,14 @@ def update_figure1(hospital, yr, selected_hosps_btn, stars_peers_btn, filtered_h
     jd1 = json.dumps({'triggered': ctx1.triggered,})
     jd1 = jd1[:150]
     
+    #if 'all_hosps_btn1' in jd1:
+    #    tdf_main = tdf_main[~tdf_main['summary_score'].isin([np.nan, float("NaN")])]
     if 'selected_hosps_btn1' in jd1:
         tdf_main = tdf_main[tdf_main['Name and Num'].isin(filtered_hospitals+[hospital])]
         tdf_main = tdf_main[~tdf_main['summary_score'].isin([np.nan, float("NaN")])]
-    elif 'stars_peers_btn1' in jd1 or 'selected_hosps_btn1' not in jd1:
+    elif 'stars_peers_btn1' in jd1:
+        tdf_main = tdf_main[tdf_main['cnt_grp'].isin([grp])]
+    else:
         tdf_main = tdf_main[tdf_main['cnt_grp'].isin([grp])]
         
     
@@ -2650,12 +2701,12 @@ def update_domains_table(hospital, option_hospitals, selected_hosps_btn, stars_p
             pexp_wt_LY = pexp_ws_LY[i]
             proc_wt_LY = proc_ws_LY[i]
             
-            summ_perc_LY = round(stats.percentileofscore(summ_ls_LY, summ_scor_LY), 1)
-            mort_perc_LY = round(stats.percentileofscore(mort_ls_LY, mort_scor_LY), 1)
-            safe_perc_LY = round(stats.percentileofscore(safe_ls_LY, safe_scor_LY), 1)
-            read_perc_LY = round(stats.percentileofscore(read_ls_LY, read_scor_LY), 1)
-            pexp_perc_LY = round(stats.percentileofscore(pexp_ls_LY, pexp_scor_LY), 1)
-            proc_perc_LY = round(stats.percentileofscore(proc_ls_LY, proc_scor_LY), 1)
+            summ_perc_LY = round(percentileofscore(summ_ls_LY, summ_scor_LY, nan_policy='omit'), 1)
+            mort_perc_LY = round(percentileofscore(mort_ls_LY, mort_scor_LY, nan_policy='omit'), 1)
+            safe_perc_LY = round(percentileofscore(safe_ls_LY, safe_scor_LY, nan_policy='omit'), 1)
+            read_perc_LY = round(percentileofscore(read_ls_LY, read_scor_LY, nan_policy='omit'), 1)
+            pexp_perc_LY = round(percentileofscore(pexp_ls_LY, pexp_scor_LY, nan_policy='omit'), 1)
+            proc_perc_LY = round(percentileofscore(proc_ls_LY, proc_scor_LY, nan_policy='omit'), 1)
             
             
             # Get values for next latest year
@@ -2687,12 +2738,12 @@ def update_domains_table(hospital, option_hospitals, selected_hosps_btn, stars_p
                 pexp_wt_PY = pexp_ws_PY[i]
                 proc_wt_PY = proc_ws_PY[i]
                 
-                summ_perc_PY = round(stats.percentileofscore(summ_ls_PY, summ_scor_PY), 1)
-                mort_perc_PY = round(stats.percentileofscore(mort_ls_PY, mort_scor_PY), 1)
-                safe_perc_PY = round(stats.percentileofscore(safe_ls_PY, safe_scor_PY), 1)
-                read_perc_PY = round(stats.percentileofscore(read_ls_PY, read_scor_PY), 1)
-                pexp_perc_PY = round(stats.percentileofscore(pexp_ls_PY, pexp_scor_PY), 1)
-                proc_perc_PY = round(stats.percentileofscore(proc_ls_PY, proc_scor_PY), 1)
+                summ_perc_PY = round(percentileofscore(summ_ls_PY, summ_scor_PY, nan_policy='omit'), 1)
+                mort_perc_PY = round(percentileofscore(mort_ls_PY, mort_scor_PY, nan_policy='omit'), 1)
+                safe_perc_PY = round(percentileofscore(safe_ls_PY, safe_scor_PY, nan_policy='omit'), 1)
+                read_perc_PY = round(percentileofscore(read_ls_PY, read_scor_PY, nan_policy='omit'), 1)
+                pexp_perc_PY = round(percentileofscore(pexp_ls_PY, pexp_scor_PY, nan_policy='omit'), 1)
+                proc_perc_PY = round(percentileofscore(proc_ls_PY, proc_scor_PY, nan_policy='omit'), 1)
                 
             elif yr1 == 2021:
                 summ_scor_PY = np.nan
@@ -2974,12 +3025,12 @@ def update_domains_table(hospital, option_hospitals, selected_hosps_btn, stars_p
             pexp_wt_LY = pexp_ws_LY[i]
             proc_wt_LY = proc_ws_LY[i]
             
-            summ_perc_LY = round(stats.percentileofscore(summ_ls_LY, summ_scor_LY), 1)
-            mort_perc_LY = round(stats.percentileofscore(mort_ls_LY, mort_scor_LY), 1)
-            safe_perc_LY = round(stats.percentileofscore(safe_ls_LY, safe_scor_LY), 1)
-            read_perc_LY = round(stats.percentileofscore(read_ls_LY, read_scor_LY), 1)
-            pexp_perc_LY = round(stats.percentileofscore(pexp_ls_LY, pexp_scor_LY), 1)
-            proc_perc_LY = round(stats.percentileofscore(proc_ls_LY, proc_scor_LY), 1)
+            summ_perc_LY = round(percentileofscore(summ_ls_LY, summ_scor_LY, nan_policy='omit'), 1)
+            mort_perc_LY = round(percentileofscore(mort_ls_LY, mort_scor_LY, nan_policy='omit'), 1)
+            safe_perc_LY = round(percentileofscore(safe_ls_LY, safe_scor_LY, nan_policy='omit'), 1)
+            read_perc_LY = round(percentileofscore(read_ls_LY, read_scor_LY, nan_policy='omit'), 1)
+            pexp_perc_LY = round(percentileofscore(pexp_ls_LY, pexp_scor_LY, nan_policy='omit'), 1)
+            proc_perc_LY = round(percentileofscore(proc_ls_LY, proc_scor_LY, nan_policy='omit'), 1)
             
             if yr1 != 2021:
                 # Get values for next latest year
@@ -3010,12 +3061,12 @@ def update_domains_table(hospital, option_hospitals, selected_hosps_btn, stars_p
                 pexp_wt_PY = pexp_ws_PY[i]
                 proc_wt_PY = proc_ws_PY[i]
                 
-                summ_perc_PY = round(stats.percentileofscore(summ_ls_PY, summ_scor_PY), 1)
-                mort_perc_PY = round(stats.percentileofscore(mort_ls_PY, mort_scor_PY), 1)
-                safe_perc_PY = round(stats.percentileofscore(safe_ls_PY, safe_scor_PY), 1)
-                read_perc_PY = round(stats.percentileofscore(read_ls_PY, read_scor_PY), 1)
-                pexp_perc_PY = round(stats.percentileofscore(pexp_ls_PY, pexp_scor_PY), 1)
-                proc_perc_PY = round(stats.percentileofscore(proc_ls_PY, proc_scor_PY), 1)
+                summ_perc_PY = round(percentileofscore(summ_ls_PY, summ_scor_PY, nan_policy='omit'), 1)
+                mort_perc_PY = round(percentileofscore(mort_ls_PY, mort_scor_PY, nan_policy='omit'), 1)
+                safe_perc_PY = round(percentileofscore(safe_ls_PY, safe_scor_PY, nan_policy='omit'), 1)
+                read_perc_PY = round(percentileofscore(read_ls_PY, read_scor_PY, nan_policy='omit'), 1)
+                pexp_perc_PY = round(percentileofscore(pexp_ls_PY, pexp_scor_PY, nan_policy='omit'), 1)
+                proc_perc_PY = round(percentileofscore(proc_ls_PY, proc_scor_PY, nan_policy='omit'), 1)
             
             elif yr1 == 2021:
                 summ_scor_PY = np.nan
@@ -3291,7 +3342,7 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
             option_hospitals.remove(hospital)
             
         
-        tdf_main = main_df[main_df['Name and Num'].isin(option_hospitals + [hospital])]
+        tdf_main = main_df.copy() #[main_df['Name and Num'].isin(option_hospitals + [hospital])]
         tdf_main_LY = tdf_main[tdf_main['Release year'] == yr1]
         
         if yr1 == 2021:
@@ -3331,7 +3382,7 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
             hosp_scors_LY.append(i_score)
             ls = [x for x in ls if x == x]
             
-            perc = round(stats.percentileofscore(ls, i_score), 1)
+            perc = round(percentileofscore(ls, i_score, nan_policy='omit'), 1)
             hosp_percs_LY.append(perc)
             
             ls2 = feature_dict[domain + ' labels']
@@ -3392,7 +3443,7 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
                 hosp_scors_PY.append(i_score)
                 ls = [x for x in ls if x == x]
                 
-                perc = round(stats.percentileofscore(ls, i_score), 1)
+                perc = round(percentileofscore(ls, i_score, nan_policy='omit'), 1)
                 hosp_percs_PY.append(perc)
                 
                 ls2 = feature_dict[domain + ' labels']
@@ -3562,17 +3613,32 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
     Output("data_report_plot5", "children"),
     [
         Input("hospital-select1b", "value"),
+        Input("selected_hosps_btn3", "n_clicks"),
+        Input("stars_peers_btn3", "n_clicks"),
         Input("domain-select1", "value"),
         Input("score-select1", "value"),
-        Input("year-select3", "value"),
     ],
-    prevent_initial_call=True
 )
-def update_measure_timeseries(hospital, domain, score_type, yr):
+def update_measure_timeseries(hospital, n_clicks1, n_clicks2, domain, score_type):
 
     if hospital is None:
         return None
 
+
+    set_select = 'Measures group'
+    
+    ctx1 = dash.callback_context
+    jd1 = json.dumps({'triggered': ctx1.triggered,})
+    jd1 = jd1[:150]
+    
+    if 'selected_hosps_btn2' in jd1:
+        set_select = 'Selected hospitals'
+    elif 'stars_peers_btn2' in jd1:
+        set_select = 'Measures group'
+    
+    if set_select == 'Measures group':
+        pass
+    
     hosp_df = main_df[main_df['Name and Num'] == hospital].copy()
     if hosp_df.empty:
         return None
@@ -3580,8 +3646,11 @@ def update_measure_timeseries(hospital, domain, score_type, yr):
     # Determine measures + labels
     if score_type == 'Standardized scores':
         measures = feature_dict[domain + ' (std)']
-    else:
+    elif score_type == 'Raw scores':
         measures = feature_dict[domain]
+    elif score_type == 'Percentiles':
+        # percentiles are based on standardized scores in this setup
+        measures = feature_dict[domain + ' (std)']
 
     labels = feature_dict[domain + ' labels']
 
@@ -3589,18 +3658,55 @@ def update_measure_timeseries(hospital, domain, score_type, yr):
 
     for m, lab in zip(measures, labels):
 
-        if m not in hosp_df.columns:
+        if m not in main_df.columns:
             continue
 
-        # Build clean, sorted time series
-        ts = (
-            hosp_df[['Release year', m]]
-            .dropna(subset=[m])
-            .sort_values('Release year')
-        )
+        # ---------- BUILD TIME SERIES ----------
+        if score_type == 'Percentiles':
+
+            # Compute percentiles relative to all hospitals in each release year
+            tmp = (
+                main_df[['Release year', 'Name and Num', m]]
+                .dropna(subset=[m])
+                .copy()
+            )
+
+            tmp['percentile'] = (
+                tmp
+                .groupby('Release year')[m]
+                .rank(pct=True) * 100
+            )
+
+            ts = (
+                tmp[tmp['Name and Num'] == hospital][['Release year', 'percentile']]
+                .sort_values('Release year')
+            )
+
+            yvalues = ts['percentile']
+            hover = (
+                f"<b>{lab}</b><br>"
+                "Release year: %{x}<br>"
+                "Percentile: %{y:.1f}"
+                "<extra></extra>"
+            )
+
+        else:
+            # Raw or standardized value
+            ts = (
+                hosp_df[['Release year', m]]
+                .dropna(subset=[m])
+                .sort_values('Release year')
+            )
+
+            yvalues = ts[m]
+            hover = (
+                f"<b>{lab}</b><br>"
+                "Release year: %{x}<br>"
+                "Score: %{y:.3f}"
+                "<extra></extra>"
+            )
 
         if ts.shape[0] < 2:
-            # Single point still useful, but don't draw a misleading line
             mode = 'markers'
         else:
             mode = 'lines+markers'
@@ -3608,30 +3714,25 @@ def update_measure_timeseries(hospital, domain, score_type, yr):
         fig.add_trace(
             go.Scatter(
                 x=ts['Release year'].astype(int),
-                y=ts[m],
+                y=yvalues,
                 mode=mode,
                 name=lab,
-                connectgaps=False,   # <-- critical: no fake connections
-                hovertemplate=(
-                    f"<b>{lab}</b><br>"
-                    "Release year: %{x}<br>"
-                    "Score: %{y:.3f}"
-                    "<extra></extra>"
-                ),
+                connectgaps=False,
+                hovertemplate=hover,
             )
         )
 
-    # Axis labels
-    ylab = (
-        "Standardized score"
-        if score_type == 'Standardized scores'
-        else "Raw score"
-    )
+    # Axis label
+    if score_type == 'Standardized scores':
+        ylab = "Standardized score"
+    elif score_type == 'Percentiles':
+        ylab = "Percentile"
+        # (relative to all hospitals in same release year)
+    else:
+        ylab = "Raw score"
 
     fig.update_layout(
-        paper_bgcolor = '#4d4d4d',
-        #plot_bgcolor = '#e6e6e6',
-        #title=f"{domain} measures over time",
+        paper_bgcolor='#4d4d4d',
         xaxis=dict(
             title="Release year",
             tickmode="linear",
@@ -3649,24 +3750,163 @@ def update_measure_timeseries(hospital, domain, score_type, yr):
         ),
     )
 
-    # Optional: reference line for standardized scores
+    # Reference line for standardized scores
     if score_type == 'Standardized scores':
         fig.add_hline(
             y=0,
             line_dash="dot",
             line_color="white",
-            #opacity=0.6,
         )
 
-    height = 30 + len(labels)
-    height = str(height) + "vw"
+    height = str(30 + 1.5*len(labels)) + "vw"
+
     return dcc.Graph(
         figure=fig,
-        config={"displayModeBar": False},
+        config={"responsive": True},
+        #config={"displayModeBar": False},
         style={"height": height, 
-               "width": "50vw",
+               #"width": "50vw",
                },
     )
+
+
+
+@app.callback(
+    Output("data_report_plot6", "children"),
+    [
+        Input("hospital-select1b", "value"),
+        Input("score-select2", "value"),
+        Input("open-that", "n_clicks"),
+    ],
+    prevent_initial_call=True
+)
+def update_domains_timeseries(hospital, score_type, n_clicks):
+
+    if hospital is None:
+        return None
+
+    hosp_df = main_df[main_df['Name and Num'] == hospital].copy()
+    if hosp_df.empty:
+        return None
+
+    labels = feature_dict['Stars Domains'] + ['Stars Summary Score']
+    measures = feature_dict['Standardized scores']
+    
+    fig = go.Figure()
+
+    for m, lab in zip(measures, labels):
+
+        if m not in main_df.columns:
+            continue
+
+        # ---------- BUILD TIME SERIES ----------
+        if score_type == 'Percentiles':
+
+            # Compute percentiles relative to all hospitals in each release year
+            tmp = (
+                main_df[['Release year', 'Name and Num', m]]
+                .dropna(subset=[m])
+                .copy()
+            )
+
+            tmp['percentile'] = (
+                tmp
+                .groupby('Release year')[m]
+                .rank(pct=True) * 100
+            )
+
+            ts = (
+                tmp[tmp['Name and Num'] == hospital][['Release year', 'percentile']]
+                .sort_values('Release year')
+            )
+
+            yvalues = ts['percentile']
+            hover = (
+                f"<b>{lab}</b><br>"
+                "Release year: %{x}<br>"
+                "Percentile: %{y:.1f}"
+                "<extra></extra>"
+            )
+
+        else:
+            # Raw or standardized value
+            ts = (
+                hosp_df[['Release year', m]]
+                .dropna(subset=[m])
+                .sort_values('Release year')
+            )
+
+            yvalues = ts[m]
+            hover = (
+                f"<b>{lab}</b><br>"
+                "Release year: %{x}<br>"
+                "Score: %{y:.3f}"
+                "<extra></extra>"
+            )
+
+        if ts.shape[0] < 2:
+            mode = 'markers'
+        else:
+            mode = 'lines+markers'
+
+        fig.add_trace(
+            go.Scatter(
+                x=ts['Release year'].astype(int),
+                y=yvalues,
+                mode=mode,
+                name=lab,
+                connectgaps=False,
+                hovertemplate=hover,
+            )
+        )
+
+    # Axis label
+    if score_type == 'Standardized scores':
+        ylab = "Standardized score"
+    elif score_type == 'Percentiles':
+        ylab = "Percentile"
+        # (relative to all hospitals in same release year)
+    else:
+        ylab = "Raw score"
+
+    fig.update_layout(
+        paper_bgcolor='#4d4d4d',
+        xaxis=dict(
+            title="Release year",
+            tickmode="linear",
+            dtick=1,
+        ),
+        yaxis=dict(title=ylab),
+        template="plotly_dark",
+        margin=dict(l=80, r=40, t=60 + 5*len(labels), b=40),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="left",
+            x=0,
+        ),
+    )
+
+    # Reference line for standardized scores
+    if score_type == 'Standardized scores':
+        fig.add_hline(
+            y=0,
+            line_dash="dot",
+            line_color="white",
+        )
+
+    height = str(30 + 1.5*len(labels)) + "vw"
+
+    return dcc.Graph(
+        figure=fig,
+        config={"responsive": True},
+        #config={"displayModeBar": False},
+        style={"height": height, 
+               #"width": "50vw",
+               },
+    )
+
 
 
 
@@ -3912,22 +4152,13 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
     score = tdf['summary_score'].iloc[0]
     grp = tdf['cnt_grp'].iloc[0]
     
-    #print('pnum:', pnum)
-    #print('star:', star)
-    #print('score:', score)
-    #print('grp:', grp)
-    #print(tdf['PROVIDER_ID'].iloc[0], '\n')
-    
     stars_output_df.sort_values(by='PROVIDER_ID', ascending=True, inplace=True)
     prvdrs1 = stars_output_df['PROVIDER_ID'].tolist()
-    #print(len(prvdrs1), 'hospitals')
-    #print(len(list(set(prvdrs1))), 'hospitals')
     
     ct = 0
     for p in prvdrs1:
         if 'F' in p:
             ct += 1
-    #print(ct, 'with F')
     
     results_yr_df = main_df[main_df['Release year'] == yr]
     results_yr_df.drop_duplicates(inplace=True)
@@ -3935,14 +4166,11 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
     
     results_yr_df.sort_values(by='Facility ID', ascending=True, inplace=True)
     prvdrs2 = results_yr_df['Facility ID'].tolist()
-    #print(len(prvdrs2), 'hospitals')
-    #print(len(list(set(prvdrs2))), 'hospitals')
     
     ct = 0
     for p in prvdrs2:
         if 'F' in p:
             ct += 1
-    #print(ct, 'with F\n')
     
     if prvdrs1 == prvdrs2:
         stars_output_df['Name and Num'] = results_yr_df['Name and Num'].tolist()
@@ -3988,11 +4216,11 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
             
     tdf_peer = stars_output_df[stars_output_df['cnt_grp'] == grp]
     tdf_peer = tdf_peer[tdf_peer['star'] == star]
-    perc_of_peer = round(stats.percentileofscore(tdf_peer['summary_score'], score), 1)
+    perc_of_peer = round(percentileofscore(tdf_peer['summary_score'], score, nan_policy='omit'), 1)
     txt4 = str(perc_of_peer) + " percentile of " + str(star) + " Star group " + str(grp_num) + " hospitals"
         
     tdf_filtered = filtered_hosps_df[~filtered_hosps_df['summary_score'].isin([np.nan, float("NaN")])]
-    perc_of_chosen = round(stats.percentileofscore(tdf_filtered['summary_score'], score), 1)
+    perc_of_chosen = round(percentileofscore(tdf_filtered['summary_score'], score, nan_policy='omit'), 1)
     txt5 = str(perc_of_chosen) + " percentile of hospitals in your filters"
 
     
@@ -4004,4 +4232,4 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
 
 # Run the server
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', debug = True) # modified to run on linux server
+    app.run(host='0.0.0.0', debug = False) # modified to run on linux server
