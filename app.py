@@ -149,12 +149,25 @@ def run_whatif(raw_data, pnum, yr):
             'EDAC_30_HF', 'EDAC_30_PN', 
             'OP_32', 'READM_30_CABG', 
             'READM_30_COPD', 'READM_30_HIP_KNEE', 
-            'Hybrid_HWR', 'OP_35_ADM', 
+            'Hybrid_HWR', 
+            'Hybrid_HWM', # new
+            'OP_35_ADM', 
             'OP_35_ED', 'OP_36', 
-            'H_COMP_1_STAR_RATING', 'H_COMP_2_STAR_RATING', 
-            'H_COMP_3_STAR_RATING', 'H_COMP_5_STAR_RATING', 
-            'H_COMP_6_STAR_RATING', 'H_COMP_7_STAR_RATING', 
-            'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING', 
+            'O_COMP_1_LINEAR_SCORE',
+            'O_COMP_2_LINEAR_SCORE',
+            'O_COMP_3_LINEAR_SCORE',
+            'O_PATIENT_RATE_LINEAR_SCORE',
+            'O_PATIENT_REC_LINEAR_SCORE',
+            'H_COMP_1_LINEAR_SCORE',
+            'H_COMP_2_LINEAR_SCORE',
+            'H_COMP_3_LINEAR_SCORE',
+            'H_COMP_5_LINEAR_SCORE',
+            'H_COMP_6_LINEAR_SCORE',
+            'H_COMP_7_LINEAR_SCORE',
+            'H_CLEAN_LINEAR_SCORE',
+            'H_QUIET_LINEAR_SCORE',
+            'H_RECMND_LINEAR_SCORE',
+            'H_HSP_RATING_LINEAR_SCORE',
             'IMM_3', 'OP_10', 
             'OP_13', 'OP_18B', 
             'OP_22', 'OP_23', 
@@ -168,7 +181,7 @@ def run_whatif(raw_data, pnum, yr):
                         'HAI_1', 'HAI_2', 'HAI_3', 'HAI_4', 'HAI_5', 'HAI_6',
                         'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN',
                         'OP_32', 'READM_30_CABG', 'READM_30_COPD', 
-                        'READM_30_HIP_KNEE', 'Hybrid_HWR',
+                        'READM_30_HIP_KNEE', 'Hybrid_HWR', 'Hybrid_HWM',
                         'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22',
                         'OP_18B', 'OP_8', 
                         'OP_10','OP_13', 'SAFE_USE_OF_OPIOIDS',
@@ -238,8 +251,13 @@ def run_whatif(raw_data, pnum, yr):
     final_df['PROVIDER_ID'] = zscore_df['PROVIDER_ID']
     
     # Mortality measures
-    mort_measures = ['MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF', 
-                     'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP']
+    mort_measures = []
+    if yr == 2025:
+        mort_measures = ['MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF', 
+                         'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP']
+    if yr == 2026:
+        mort_measures = ['MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF', 
+                         'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP', 'Hybrid_HWM']
     final_df['Std_Outcomes_Mortality_score'] = stats.zscore(zscore_df[mort_measures].mean(axis=1), ddof=ddof, nan_policy='omit')
     final_df['Outcomes_Mortality_cnt'] = zscore_df[mort_measures].apply(lambda row: row.notna().sum(), axis=1)
     
@@ -266,14 +284,36 @@ def run_whatif(raw_data, pnum, yr):
     
     
     # Patient experience measures
-    patexp_measures = ['H_COMP_1_STAR_RATING', 'H_COMP_2_STAR_RATING', 
-                       'H_COMP_3_STAR_RATING', 'H_COMP_5_STAR_RATING', 
-                       'H_COMP_6_STAR_RATING', 'H_COMP_7_STAR_RATING', 
-                       'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING']
+    patexp_measures = []
+    if yr == 2025: 
+        patexp_measures = ['H_COMP_1_STAR_RATING', 'H_COMP_2_STAR_RATING', 
+                           'H_COMP_3_STAR_RATING', 'H_COMP_5_STAR_RATING', 
+                           'H_COMP_6_STAR_RATING', 'H_COMP_7_STAR_RATING', 
+                           'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING']
+    elif yr == 2026:
+        patexp_measures = [
+            'O_COMP_1_LINEAR_SCORE',
+            'O_COMP_2_LINEAR_SCORE',
+            'O_COMP_3_LINEAR_SCORE',
+            'O_PATIENT_RATE_LINEAR_SCORE',
+            'O_PATIENT_REC_LINEAR_SCORE',
+            'H_COMP_1_LINEAR_SCORE',
+            'H_COMP_2_LINEAR_SCORE',
+            'H_COMP_3_LINEAR_SCORE',
+            'H_COMP_5_LINEAR_SCORE',
+            'H_COMP_6_LINEAR_SCORE',
+            'H_COMP_7_LINEAR_SCORE',
+            'H_CLEAN_LINEAR_SCORE',
+            'H_QUIET_LINEAR_SCORE',
+            'H_RECMND_LINEAR_SCORE',
+            'H_HSP_RATING_LINEAR_SCORE',
+        ]
+        
     final_df['Std_PatientExp_score'] = stats.zscore(zscore_df[patexp_measures].mean(axis=1), ddof=ddof, nan_policy='omit')
     final_df['Patient_Experience_cnt'] = zscore_df[patexp_measures].apply(lambda row: row.notna().sum(), axis=1)
     
     
+    # Timely effective care measures
     proc_measures = []
     if yr == 2025:
         proc_measures = ['HCP_COVID_19', 
@@ -423,8 +463,6 @@ def run_whatif(raw_data, pnum, yr):
     
     complete_df = pd.concat([dfg3, dfg4, dfg5])
     
-    '''
-    IGNORE THIS FOR NOW. THERE ARE VERY FEW HOSPITALS (NONE THAT INTEREST ME) THAT WOULD LOSE A STAR
     if yr == 2026:
         # ---------------------------------------------------------
         # 2026 rule:
@@ -443,9 +481,8 @@ def run_whatif(raw_data, pnum, yr):
 
         # Apply downgrade
         complete_df.loc[downgrade_mask, 'star'] = 4
-    '''
         
-    tdf1 = complete_df[~complete_df['star'].isin([np.nan, float("NaN")])]
+    #tdf1 = complete_df[~complete_df['star'].isin([np.nan, float("NaN")])]
     
     return complete_df
 
@@ -593,6 +630,7 @@ feature_dict['Readmission labels'] = [
 
 
 feature_dict['Mortality'] = [
+    'Hybrid_HWM',
     'MORT_30_STK',
     'MORT_30_PN',
     'MORT_30_HF',
@@ -602,6 +640,7 @@ feature_dict['Mortality'] = [
     'PSI_4_SURG_COMP',
     ]
 feature_dict['Mortality (std)'] = [
+    'std_Hybrid_HWM',
     'std_MORT_30_STK',
     'std_MORT_30_PN',
     'std_MORT_30_HF',
@@ -611,6 +650,7 @@ feature_dict['Mortality (std)'] = [
     'std_PSI_4_SURG_COMP',
     ]
 feature_dict['Mortality labels'] = [
+    'Hospital-Wide All-Cause Risk Standardized Mortality Rate',
     'STK 30-Day Mortality Rate',
     'PN 30-Day Mortality Rate',
     'HF 30-Day Mortality Rate',
@@ -629,9 +669,23 @@ feature_dict['Patient Experience'] = [
     'H_COMP_6_STAR_RATING',
     'H_COMP_7_STAR_RATING',
     'H_GLOB_STAR_RATING', # H-HSP-RATING + H-RECMND / 2
-    'H_INDI_STAR_RATING'] # H-CLEAN-HSP + H-QUIET-HSP / 2
-    #'H_RESP_RATE_P',
-    #'H_NUMB_COMP',
+    'H_INDI_STAR_RATING', # H-CLEAN-HSP + H-QUIET-HSP / 2
+    'O_COMP_1_LINEAR_SCORE',
+    'O_COMP_2_LINEAR_SCORE',
+    'O_COMP_3_LINEAR_SCORE',
+    'O_PATIENT_RATE_LINEAR_SCORE',
+    'O_PATIENT_REC_LINEAR_SCORE',
+    'H_COMP_1_LINEAR_SCORE',
+    'H_COMP_2_LINEAR_SCORE',
+    'H_COMP_3_LINEAR_SCORE',
+    'H_COMP_5_LINEAR_SCORE',
+    'H_COMP_6_LINEAR_SCORE',
+    'H_COMP_7_LINEAR_SCORE',
+    'H_CLEAN_LINEAR_SCORE',
+    'H_QUIET_LINEAR_SCORE',
+    'H_RECMND_LINEAR_SCORE',
+    'H_HSP_RATING_LINEAR_SCORE',
+    ]
     
 feature_dict['Patient Experience (std)'] = [
     'std_H_COMP_1_STAR_RATING', 
@@ -642,6 +696,21 @@ feature_dict['Patient Experience (std)'] = [
     'std_H_COMP_7_STAR_RATING', 
     'std_H_GLOB_STAR_RATING', 
     'std_H_INDI_STAR_RATING',
+    'std_O_COMP_1_LINEAR_SCORE',
+    'std_O_COMP_2_LINEAR_SCORE',
+    'std_O_COMP_3_LINEAR_SCORE',
+    'std_O_PATIENT_RATE_LINEAR_SCORE',
+    'std_O_PATIENT_REC_LINEAR_SCORE',
+    'std_H_COMP_1_LINEAR_SCORE',
+    'std_H_COMP_2_LINEAR_SCORE',
+    'std_H_COMP_3_LINEAR_SCORE',
+    'std_H_COMP_5_LINEAR_SCORE',
+    'std_H_COMP_6_LINEAR_SCORE',
+    'std_H_COMP_7_LINEAR_SCORE',
+    'std_H_CLEAN_LINEAR_SCORE',
+    'std_H_QUIET_LINEAR_SCORE',
+    'std_H_RECMND_LINEAR_SCORE',
+    'std_H_HSP_RATING_LINEAR_SCORE',
     ]
 
 feature_dict['Patient Experience labels'] = [
@@ -652,9 +721,25 @@ feature_dict['Patient Experience labels'] = [
     'Discharge information',
     'Care transition',
     'Overall Rating of Hospital', # H-HSP-RATING + H-RECMND / 2
-    'Cleanliness and Quietness'] # H-CLEAN-HSP + H-QUIET-HSP / 2
-    #'H_RESP_RATE_P',
-    #'H_NUMB_COMP',
+    'Cleanliness and Quietness', # H-CLEAN-HSP + H-QUIET-HSP / 2
+    
+    'Hospital cleanliness (OAS)',
+    'Clear and complete information about procedure (OAS)',
+    'Written information and preparation for recovery (OAS)',
+    'Hospital rating (OAS)',
+    'Recommend hospital (OAS)',
+    
+    'Nurse Communication',
+    'Doctor Communication',
+    'Staff responsiveness',
+    'Communication about medicines',
+    'Discharge information',
+    'Care transition',
+    'Hospital cleanliness',
+    'Hospital quietness',
+    'Recommend hospital',
+    'Hospital rating',
+    ]
 
                                         
 feature_dict['Timely and Effective Care'] = [
@@ -739,12 +824,13 @@ for h in HOSPITALS:
 
 ##############################################################################
 
+'''
 domain = 'Patient Experience'
 measures = ['H_COMP_1_STAR_RATING', 'H_COMP_2_STAR_RATING', 
                'H_COMP_3_STAR_RATING', 'H_COMP_5_STAR_RATING', 
                'H_COMP_6_STAR_RATING', 'H_COMP_7_STAR_RATING', 
                'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING']
-
+'''
 
 ##############################################################################
 
