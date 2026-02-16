@@ -26,9 +26,6 @@ from datetime import datetime
 
 import dash_draggable
 
-px.set_mapbox_access_token('pk.eyJ1Ijoia2xvY2V5IiwiYSI6ImNrYm9uaWhoYjI0ZDcycW56ZWExODRmYzcifQ.Mb27BYst186G4r5fjju6Pw')
-
-
 #########################################################################################
 ################################# CONFIG APP ############################################
 #########################################################################################
