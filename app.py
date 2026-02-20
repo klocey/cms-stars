@@ -392,19 +392,19 @@ def run_whatif(raw_data, pnum, yr):
         }
         
     elif yr == 2026: # ALL OF THESE WEIGHTS ARE CORRECT
-        final_df['std_weight_PatientExperience'] = 0.197
-        final_df['std_weight_Readmission'] = 0.197
-        final_df['std_weight_Mortality'] = 0.197
-        final_df['std_weight_safety'] = 0.3
-        final_df['std_weight_Process'] = 0.109
+        final_df['std_weight_PatientExperience'] = 0.22
+        final_df['std_weight_Readmission'] = 0.22
+        final_df['std_weight_Mortality'] = 0.22
+        final_df['std_weight_safety'] = 0.22
+        final_df['std_weight_Process'] = 0.12
         
         # Standard weights and their corresponding score columns
         weights_info = {
-            'Std_PatientExp_score': ('weight_PatientExperience', 0.197),
-            'Std_Outcomes_Readmission_score': ('weight_Outcomes_Readmission', 0.197),
-            'Std_Outcomes_Mortality_score': ('weight_Outcomes_Mortality', 0.197),
-            'Std_Outcomes_Safety_score': ('weight_Outcomes_Safety', 0.3),
-            'Std_Process_score': ('weight_Process', 0.109)
+            'Std_PatientExp_score': ('weight_PatientExperience', 0.22),
+            'Std_Outcomes_Readmission_score': ('weight_Outcomes_Readmission', 0.22),
+            'Std_Outcomes_Mortality_score': ('weight_Outcomes_Mortality', 0.22),
+            'Std_Outcomes_Safety_score': ('weight_Outcomes_Safety', 0.22),
+            'Std_Process_score': ('weight_Process', 0.12)
         }
     
     # Function to adjust weights
