@@ -187,7 +187,37 @@ html, body {
     background-color: #2a8cff !important;
 }
 
-
-
-
-
+/* Comparison switch: a two-option radio group drawn as joined buttons.
+   The selected option is filled; the other is outlined. */
+.compare-switch .form-check {
+    display: inline-block;
+    padding-left: 0;
+    margin: 0;
+}
+.compare-switch .btn {
+    font-size: 12px;
+    font-weight: normal;
+    margin-bottom: 0;
+    color: #2a8cff;
+    border-color: #2a8cff;
+    background-color: #ffffff;
+}
+.compare-switch .btn:hover {
+    color: #ffffff;
+    background-color: #66adff;
+    border-color: #66adff;
+}
+.compare-switch .btn.active {
+    color: #ffffff;
+    background-color: #2a8cff;
+    border-color: #2a8cff;
+}
+.compare-switch > .form-check:not(:last-child) > .btn {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.compare-switch > .form-check:not(:first-child) > .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    margin-left: -1px;
+}

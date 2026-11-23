@@ -6,8 +6,26 @@ import dash_bootstrap_components as dbc
 from dash import dash_table
 
 from app_data import (
-    states, htypes, ctypes, latest_yr, latest_release_yr,
+    states, htypes, ctypes, latest_yr, latest_release_yr, year_label,
 )
+
+
+def comparison_switch(switch_id, style=None):
+    """Two-option switch that sets what the focal hospital is compared to.
+    The selected option stays highlighted and is kept when the hospital or year changes."""
+    return dbc.RadioItems(
+        id=switch_id,
+        className="btn-group compare-switch",
+        inputClassName="btn-check",
+        labelClassName="btn btn-outline-primary",
+        labelCheckedClassName="active",
+        options=[
+            {"label": "Compare to Stars Peer Group", "value": "Measures group"},
+            {"label": "Compare to Filtered Hospitals", "value": "Selected hospitals"},
+        ],
+        value="Measures group",
+        style=style or {},
+    )
 
 
 ##############################################################################
@@ -108,9 +126,9 @@ def generate_control_card1():
                 centered=True,
                 autoFocus=True,
                 size="xl",
-                keyboard=True,
+                keyboard=False,   # Esc does not close it; use "Save & Close"
                 fade=True,
-                backdrop=True,
+                backdrop="static",   # clicking outside does not close it
                 ),
             html.Br(),
             
@@ -152,9 +170,9 @@ def generate_control_card1():
                 centered=True,
                 autoFocus=True,
                 size="xl",
-                keyboard=True,
+                keyboard=False,   # Esc does not close it; use "Save & Close"
                 fade=True,
-                backdrop=True,
+                backdrop="static",   # clicking outside does not close it
                 ),
             html.Br(),
             
@@ -195,9 +213,9 @@ def generate_control_card1():
                 centered=True,
                 autoFocus=True,
                 size="xl",
-                keyboard=True,
+                keyboard=False,   # Esc does not close it; use "Save & Close"
                 fade=True,
-                backdrop=True,
+                backdrop="static",   # clicking outside does not close it
                 ),
             html.Br(),
             html.Br(),
@@ -299,11 +317,12 @@ def create_layout(app):
                         
                             dcc.Dropdown(
                                 id='year-select1',
-                                options=[{"label": str(i)+'  ', "value": i} for i in list(range(2021, latest_yr+1))],
+                                options=[{"label": year_label(i)+'  ', "value": i} for i in list(range(2021, latest_yr+1))],
                                 value=latest_yr,
                                 placeholder='Select a Stars year',
                                 optionHeight=50,
                                 style={
+                                    'min-width': '170px',   # room for the '(predicted)' label
                                     #'width': '30%', 
                                     #'font-size': 13,
                                     'display': 'inline-block',
@@ -316,27 +335,12 @@ def create_layout(app):
                                     },
                             ),
                         
-                            dbc.Button("Compare to Filtered Hospitals", 
-                                        id="selected_hosps_btn1",
-                                        n_clicks=0,
-                                        className="custom-button",
-                                        style={
-                                           'display': 'inline-block',
-                                           'margin-left': '8%',
-                                           "fontSize": "12px",
-                                           },
-                                       ),
-                        
-                            dbc.Button("Compare to Stars Peer Group",
-                                        id="stars_peers_btn1",
-                                        n_clicks=0,
-                                        className="custom-button",
-                                        style={
-                                           'display': 'inline-block',
-                                           'margin-left': '4%',
-                                           "fontSize": "12px",
-                                           },
-                                       ),
+                            comparison_switch("compare-select1",
+                                              style={'display': 'inline-block', 'margin-left': '8%', 'verticalAlign': 'bottom'}),
+                            
+                            # Which filters are in use (filled in by a callback)
+                            html.Div(id="active-filters",
+                                     style={'fontSize': '13px', 'color': '#555555', 'margin': '10px 0px 0px 1%'}),
                             html.Hr(),
                         
                             dcc.Graph(id="figure1"),
@@ -501,11 +505,12 @@ def create_layout(app):
                                 html.H5("Scores across domains"),
                                 dcc.Dropdown(
                                     id='year-select2',
-                                    options=[{"label": i, "value": i} for i in list(range(2021, latest_yr+1))],
+                                    options=[{"label": year_label(i), "value": i} for i in list(range(2021, latest_yr+1))],
                                     value=latest_yr,
                                     placeholder='Select a Stars year',
                                     optionHeight=50,
                                     style={
+                                        'min-width': '170px',   # room for the '(predicted)' label
                                         'display': 'inline-block',
                                         'padding': '0px 30px 0px 20px',
                                         'verticalAlign': 'bottom',
@@ -513,30 +518,8 @@ def create_layout(app):
                                         },
                                     ),
                             
-                                dbc.Button("Compare to Filtered Hospitals",
-                                            id="selected_hosps_btn2",
-                                            n_clicks=0,
-                                            className="custom-button",
-                                            style={
-                                                'font-size': 12,
-                                                'display': 'inline-block',
-                                                'vertical-align': 'top',
-                                                'margin-left': '3%',
-                                                },
-                                           ),
-                            
-                            
-                                dbc.Button("Compare to Stars Peer Group",
-                                            id="stars_peers_btn2",
-                                            n_clicks=0,
-                                            className="custom-button",
-                                            style={
-                                                'font-size': 12,
-                                                'display': 'inline-block',
-                                                'vertical-align': 'top',
-                                                'margin-left': '3%',
-                                                },
-                                           ),
+                                comparison_switch("compare-select2",
+                                                  style={'display': 'inline-block', 'margin-left': '3%', 'vertical-align': 'top'}),
                             
                                 html.Hr(),
                                 html.Br(),
@@ -634,33 +617,17 @@ def create_layout(app):
                             children=[
                                 html.H5("Examine individual measures"),
                             
-                                dbc.Button("Compare to Filtered Hospitals",
-                                            id="selected_hosps_btn3",
-                                            n_clicks=0,
-                                            className="custom-button",
-                                            style={
-                                                'display': 'inline-block',
-                                                },
-                                           ),
-                            
-                                dbc.Button("Compare to Stars Peer Group",
-                                           id="stars_peers_btn3",
-                                            n_clicks=0,
-                                            className="custom-button",
-                                            style={
-                                                'display': 'inline-block',
-                                                'margin-left': '2%',
-                                                },
-                                           ),
+                                comparison_switch("compare-select3", style={'display': 'inline-block'}),
                             
                                 html.Br(),
                                 dcc.Dropdown(
                                     id='year-select3',
-                                    options=[{"label": i, "value": i} for i in list(range(2021, latest_yr+1))],
+                                    options=[{"label": year_label(i), "value": i} for i in list(range(2021, latest_yr+1))],
                                     value=latest_yr,
                                     placeholder='Select a Stars year',
                                     optionHeight=50,
                                     style={
+                                        'min-width': '170px',   # room for the '(predicted)' label
                                         'display': 'inline-block',
                                         #'padding': '0px 30px 0px 20px',
                                         #'verticalAlign': 'top',
@@ -802,11 +769,12 @@ def create_layout(app):
                             
                                 dcc.Dropdown(
                                     id="year-select4",
-                                    options=[{"label": str(i)+'  ', "value": i} for i in list(range(latest_release_yr, latest_yr+1))],
+                                    options=[{"label": year_label(i)+'  ', "value": i} for i in list(range(latest_release_yr, latest_yr+1))],
                                     value=latest_yr,
                                     #placeholder='Select a year',
                                     optionHeight=50,
                                     style={
+                                        'min-width': '170px',   # room for the '(predicted)' label
                                         #'width': '20%', 
                                         #'font-size': 13,
                                         'display': 'inline-block',
@@ -832,19 +800,6 @@ def create_layout(app):
                                                 },
                                            ),
                             
-                                dbc.Button("View what-if results",
-                                           id="open-what-if-results",
-                                            n_clicks=0,
-                                            className="custom-button",
-                                            style={
-                                                'width': '20%',
-                                                'font-size': 12,
-                                                #'display': 'inline-block',
-                                                'margin-left': '2%',
-                                                'margin-bottom': '1%',
-                                                #'verticalAlign': 'top',
-                                                },
-                                           ),
                             
                                 dbc.Button("Reset the table",
                                             id="reset-table",

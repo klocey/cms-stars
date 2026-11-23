@@ -2,7 +2,6 @@
 interacts with it). They are registered with Dash through the dash.callback
 decorator, so importing this module is enough to register them."""
 
-import dash
 from dash import callback
 from dash import dcc
 from dash.dependencies import Input, Output, State
@@ -28,6 +27,7 @@ import features
 
 from app_data import (
     main_df, beds_max, what_if_df_2026, what_if_df_2027, HOSPITALS, beds, states, htypes, ctypes, latest_yr, latest_release_yr,
+    year_label,
 )
 
 
@@ -60,9 +60,17 @@ TS_YLABELS = {
 
 ##############################   Helper functions   #####################################
 
-def get_triggered_ids():
-    """Return the set of component ids whose change fired the current callback."""
-    return {t['prop_id'].split('.')[0] for t in dash.callback_context.triggered}
+def missing_years_message(hospital, yr1, yr2, yrs):
+    """Return a message when the hospital has no data for the chosen year (yr1) or,
+    after 2021, for the earlier year (yr2) that delta values are computed against.
+    Return None when both years are available."""
+    if yr1 not in yrs:
+        return hospital + " has no data for " + str(yr1) + ". Try selecting another year."
+    if yr1 != 2021 and yr2 not in yrs:
+        missing = " or ".join(str(y) for y in sorted({yr1 - 1, yr2}, reverse=True))
+        return (hospital + " has no data for " + missing + ", so delta values cannot be "
+                "computed for " + str(yr1) + ". Try selecting another year.")
+    return None
 
 
 def prior_release_year(yr1, yrs):
@@ -92,7 +100,7 @@ MODALS = [
     ("modal-choose_theother", "open-theother",        "close-theother",        True),
     ("modal-choose_what-if",  "open-what-if",         "close-what-if",         True),
     ("modal-centered1",       "open-centered1",       "close-centered1",       False),
-    ("modal-what-if-results", "open-what-if-results", "close-what-if-results", False),
+    ("modal-what-if-results", "whatif_button",        "close-what-if-results", False),
     ("modal-centered3",       "open-centered3",       "close-centered3",       False),
     ("modal-centered4",       "open-centered4",       "close-centered4",       False),
 ]
@@ -144,6 +152,44 @@ def update_map_header(filtered_hospitals):
     else:
         return "Your filters produced " + str(len(filtered_hospitals)) + " hospitals. Not all hospitals will have data or stars results for each year."
 
+
+
+def _describe_selection(values, full, max_listed=4):
+    """Short description of a multi-select filter: 'all', 'none', the values, or 'k of n'."""
+    full = set(full)
+    values = list(values or [])
+    if not values:
+        return 'none'
+    if full.issubset(values):
+        return 'all'
+    if len(values) <= max_listed:
+        return ', '.join(sorted(str(v) for v in values))
+    return str(len(values)) + ' of ' + str(len(full))
+
+
+@callback(
+    Output("active-filters", "children"),
+    Input("option_hospitals", "children"),
+    State("beds1", "value"),
+    State("states-select1", "value"),
+    State("hospital_type1", "value"),
+    State("control_type1", "value"),
+)
+def update_active_filters(filtered_hospitals, bed_range, states_vals, htype_vals, ctype_vals):
+    """One line describing the filters that define the 'Filtered Hospitals' comparison set."""
+    if filtered_hospitals is None:
+        raise PreventUpdate
+    low, high = int(bed_range[0]), int(bed_range[1])
+    beds_txt = 'all' if (low <= 0 and high >= 2700) else '{:,}\u2013{:,}'.format(low, high)
+    parts = [
+        'Filtered hospitals: {:,}'.format(len(filtered_hospitals)),
+        'States: ' + _describe_selection(states_vals, states),
+        'Hospital types: ' + _describe_selection(htype_vals, htypes),
+        'Ownership: ' + _describe_selection(ctype_vals, ctypes),
+        'Beds: ' + beds_txt,
+    ]
+    return '  \u00b7  '.join(parts)
+
         
 
 @callback([Output('year-select1', 'options'),
@@ -165,7 +211,7 @@ def update_yrs(hospital):
         yrs = main_df[main_df['Name and Num'] == hospital]['Release year'].unique()
         yrs = sorted(yrs, reverse=True)
         
-        options = [{"label": str(i)+'  ', "value": i} for i in yrs]
+        options = [{"label": year_label(i)+'  ', "value": i} for i in yrs]
         return options, yrs[0], options, yrs[0], options, yrs[0]
 
 
@@ -455,12 +501,11 @@ def update_boxes(hospital, filtered_hospitals, year):
      Output("figure1", "figure"),
      [Input("hospital-select1b", "value"),
       Input('year-select1', 'value'),
-      Input("selected_hosps_btn1", "n_clicks"),
-      Input("stars_peers_btn1", "n_clicks"),
+      Input("compare-select1", "value"),
       Input("option_hospitals", 'children'),
       ],
     )
-def update_figure1(hospital, yr, selected_hosps_btn, stars_peers_btn, filtered_hospitals):    
+def update_figure1(hospital, yr, compare, filtered_hospitals):    
     
     
     fig = go.Figure(data=go.Scatter(x = [0], y = [0]))
@@ -508,15 +553,11 @@ def update_figure1(hospital, yr, selected_hosps_btn, stars_peers_btn, filtered_h
         name1 = "Hospital " + hospital[-7:-1]
         
     
-    triggered = get_triggered_ids()
-    
     #if 'all_hosps_btn1' in triggered:
     #    tdf_main = tdf_main[~tdf_main['summary_score'].isin([np.nan, float("NaN")])]
-    if 'selected_hosps_btn1' in triggered:
+    if compare == 'Selected hospitals':
         tdf_main = tdf_main[tdf_main['Name and Num'].isin(filtered_hospitals+[hospital])]
         tdf_main = tdf_main[~tdf_main['summary_score'].isin([np.nan, float("NaN")])]
-    elif 'stars_peers_btn1' in triggered:
-        tdf_main = tdf_main[tdf_main['cnt_grp'].isin([grp])]
     else:
         tdf_main = tdf_main[tdf_main['cnt_grp'].isin([grp])]
         
@@ -613,21 +654,13 @@ def update_figure1(hospital, yr, selected_hosps_btn, stars_peers_btn, filtered_h
       ],
      [Input("hospital-select1b", "value"), 
       Input("option_hospitals", 'children'),
-      Input("selected_hosps_btn2", "n_clicks"),
-      Input("stars_peers_btn2", "n_clicks"),
+      Input("compare-select2", "value"),
       Input("year-select2", "value"),
       ],
     )
-def update_domains_table(hospital, option_hospitals, selected_hosps_btn, stars_peers_btn, yr):    
+def update_domains_table(hospital, option_hospitals, compare, yr):    
     
-    set_select = 'Measures group'
-    
-    triggered = get_triggered_ids()
-    
-    if 'selected_hosps_btn2' in triggered:
-        set_select = 'Selected hospitals'
-    elif 'stars_peers_btn2' in triggered:
-        set_select = 'Measures group'
+    set_select = 'Selected hospitals' if compare == 'Selected hospitals' else 'Measures group'
     
     if set_select == 'Measures group':
         
@@ -909,7 +942,7 @@ def update_domains_table(hospital, option_hospitals, selected_hosps_btn, stars_p
             return dashT, txt
         
         else:
-            return dashT, ''
+            return dashT, missing_years_message(hospital, yr1, yr2, yrs)
         
     elif set_select == 'Selected hospitals':
 
@@ -1184,7 +1217,7 @@ def update_domains_table(hospital, option_hospitals, selected_hosps_btn, stars_p
             return dashT, txt
         
         else:
-            return dashT, ''
+            return dashT, missing_years_message(hospital, yr1, yr2, yrs)
 
 
     
@@ -1197,14 +1230,13 @@ def update_domains_table(hospital, option_hospitals, selected_hosps_btn, stars_p
       ],
      [Input("hospital-select1b", "value"),
       Input("option_hospitals", 'children'),
-      Input("selected_hosps_btn3", "n_clicks"),
-      Input("stars_peers_btn3", "n_clicks"),
+      Input("compare-select3", "value"),
       Input('domain-select1', "value"),
       Input('score-type1', 'value'),
       Input('year-select3', "value"),
       ],
     )
-def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_btn, domain, score_type, yr):    
+def update_panel4(hospital, option_hospitals, compare, domain, score_type, yr):    
     
     cols = ['Measure', 'Value', 'Delta value', 
             'Percentile', 'Delta percentile']
@@ -1262,23 +1294,12 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
 
     # The hospital has no data for the chosen year, or for the earlier year that
     # delta values are computed against (for example, a gap in its release years)
-    if yr1 not in yrs:
-        txt = hospital + " has no data for " + str(yr1) + ". Try selecting another year."
-        return dashT, txt
-    if yr1 != 2021 and yr2 not in yrs:
-        missing = " or ".join(str(y) for y in sorted({yr1 - 1, yr2}, reverse=True))
-        txt = (hospital + " has no data for " + missing + ", so delta values cannot be "
-               "computed for " + str(yr1) + ". Try selecting another year.")
+    txt = missing_years_message(hospital, yr1, yr2, yrs)
+    if txt:
         return dashT, txt
     
     
-    triggered = get_triggered_ids()
-    
-    set_select = 'Measures group'
-    if 'selected_hosps_btn3' in triggered:
-        set_select = 'Selected hospitals'
-    elif 'stars_peers_btn3' in triggered:
-        set_select = 'Measures group'
+    set_select = 'Selected hospitals' if compare == 'Selected hospitals' else 'Measures group'
         
         
     if set_select == 'Measures group':
@@ -1672,24 +1693,18 @@ def _value_series(hosp_df, measure):
     Output("data_report_plot5", "children"),
     [
         Input("hospital-select1b", "value"),
-        Input("selected_hosps_btn3", "n_clicks"),
-        Input("stars_peers_btn3", "n_clicks"),
+        Input("compare-select3", "value"),
         Input("domain-select1", "value"),
         Input("score-select1", "value"),
     ],
 )
-def update_measure_timeseries(hospital, n_clicks1, n_clicks2, domain, score_type):
+def update_measure_timeseries(hospital, compare, domain, score_type):
 
     if hospital is None or domain is None or score_type is None:
         return None
 
-    # ---------- WHICH BUTTON FIRED ----------
-    # Reads the triggering component ids directly; works across Dash versions.
-    triggered_ids = get_triggered_ids()
-    if 'selected_hosps_btn3' in triggered_ids:
-        set_select = 'Selected hospitals'
-    else:
-        set_select = 'Measures group'
+    # ---------- COMPARISON SET (from the switch) ----------
+    set_select = 'Selected hospitals' if compare == 'Selected hospitals' else 'Measures group'
     # NOTE: set_select is not yet used below (the original branch was `pass`);
     # it is retained so the selection logic is ready when you need it.
 

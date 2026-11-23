@@ -25,6 +25,14 @@ main_df['Release year'] = main_df['Release year'].astype(int)
 latest_yr = np.max(main_df['Release year'])
 latest_release_yr = latest_yr - 1
 
+# The latest year in the data holds the app's predictions for the next CMS release
+PREDICTED_YEAR = latest_yr
+
+
+def year_label(yr):
+    """Dropdown label for a release year. The predicted year is marked as such."""
+    return str(yr) + (" (predicted)" if yr == PREDICTED_YEAR else "")
+
 states = ['NaN' if x is np.nan else x for x in states]
 htypes = ['NaN' if x is np.nan else x for x in htypes]
 ctypes = ['NaN' if x is np.nan else x for x in ctypes]
