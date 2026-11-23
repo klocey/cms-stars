@@ -1,96 +1,135 @@
 # cms-stars
-python source code for an open source plotly dash app, used for examining results of CMS' Overall Hospital Quality Star Ratings.
 
-## How to run this app
+Python source code for an open-source [Plotly Dash](https://dash.plotly.com/) application for examining the Centers for Medicare & Medicaid Services (CMS) Overall Hospital Quality Star Ratings. The app supports retrospective analysis of past ratings (2021 onward), prospective estimates of the upcoming release, and what-if analyses for individual hospitals.
 
-1. After downloading or cloning this repository, open a terminal window or command prompt in the root folder.
+**Live app:** https://cms-stars-app-2bb02f1a5ac2.herokuapp.com/
 
-2. Create a virtual environment for running this app with Python (>=3.8)
+## Publication
 
-	In MacOS or Linux:
-	  
-	```
-	python3 -m virtualenv venv
-	
-	```
-	In Unix:
-	
-	```
-	source venv/bin/activate
-	
-	```
-	In Windows: 
-	
-	```
-	venv\Scripts\activate
-	```
-3. Install required packages using pip:
+Locey, K.J., Stein, B.D., Schipfer, R., Dotson, B., & Klemp, L. (2024). An open-source application for obtaining retrospective and prospective insights into overall hospital quality star ratings. *Healthcare Analytics*, 6, 100371. https://doi.org/10.1016/j.health.2024.100371
 
-	```
-	pip install -r requirements.txt
-	```
+The paper describes the app as of the 2024 release. The code here has been updated continually since then for new CMS releases, methodology changes, and new features, so details may differ from the publication.
 
-4. Run this app locally with:
+## What the app does
 
-	```
-	python3.8 app.py
-	```
+- **Choose a hospital and a comparison set.** Filter peer hospitals by hospital type, ownership type, US state or territory, and number of beds. A map shows the filtered hospitals.
+- **Summary view.** Star rating, summary score, and peer group for the chosen hospital and release year.
+- **Scores across domains.** Compare the hospital's domain scores (Mortality, Safety of Care, Readmission, Patient Experience, Timely and Effective Care) against the filtered hospitals or against the hospitals in its CMS peer group.
+- **Examine individual measures.** Measure-level standardized scores, raw scores, and percentiles, including time series across release years.
+- **Prospective estimates.** The most recent year in the data is an estimate of the upcoming release, made by applying the CMS methodology to data that have already been published.
+- **What-if analysis.** Edit a hospital's measure values and recalculate its rating for the latest release year or the upcoming one.
+- **Download data.** Export the compiled dataset as a CSV file.
 
-	The output of the terminal window will look like:
+### How the star ratings are calculated (brief)
 
-	```
-	Dash is running on http://0.0.0.0:8050/
-	```
-	
-5. Paste the url into your web browser and voila!
+Each measure is standardized as a z-score (the number of standard deviations from the national mean), with its sign set so that higher values are better. Measures are averaged within each of the five domains, and the domain averages are standardized again. A weighted summary score is then calculated: Timely and Effective Care is weighted 0.12 and each of the other four domains 0.22, with the weights redistributed when a hospital lacks a domain. Hospitals that meet the reporting thresholds are placed in peer groups by the number of domains they report (3, 4, or 5), and k-means clustering on the summary scores within each peer group assigns 1 to 5 stars.
+
+## How to run the app locally
+
+1. Clone or download this repository and open a terminal in its root folder.
+
+2. Create and activate a virtual environment (Python 3.12 is used in deployment):
+
+   macOS or Linux:
+   ```
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+   Windows:
+   ```
+   python -m venv venv
+   venv\Scripts\activate
+   ```
+
+3. Install the required packages:
+   ```
+   pip install -r requirements.txt
+   ```
+
+4. Run the app:
+   ```
+   python app.py
+   ```
+
+   The terminal will show something like:
+   ```
+   Dash is running on http://0.0.0.0:8050/
+   ```
+
+5. Open that address (or http://localhost:8050/) in your web browser.
 
 ## Requirements
-These are automatically installed when following the instructions above.
 
-* werkzeug==2.0.3
-* dash==2.0.0
-* gunicorn==20.1.0
-* numpy==1.22.1
-* pandas==1.4.0
-* scipy>=1.7.3
-* flask>=1.1.2
-* plotly==5.5.0
-* datetime==4.3
-* pathlib==1.0.1
-* statsmodels==0.13.1
-* scikit-learn==1.0.2
-* dash_bootstrap_components==1.0.2
-* lxml==4.8.0
+Listed in `requirements.txt` and installed in step 3 above:
 
-## Files & Directories
+* werkzeug==3.0.6
+* dash==3.0.1
+* gunicorn==23.0.0
+* numpy==2.2.4
+* pandas==2.2.3
+* scipy==1.15.2
+* Flask==3.0.3
+* plotly==6.0.1
+* DateTime==5.5
+* dash_bootstrap_components==2.0.0
+* lxml==5.3.1
+* scikit-learn==1.6.1
 
-<details><summary>app.py</summary>	
-The primary file for running the application. This file contains the entirety of source code for the app as well as many comments to explain the application's functionality.
+## Files and directories
+
+<details><summary>app.py</summary>
+
+The main application file: app configuration, data loading, page layout, and all Dash callbacks (the functions that update the page when a user interacts with it). The compiled dataset loaded at startup is set by the `month` and `year` variables near the top of the file.
 </details>
 
-<details><summary>assets</summary>
-Files in this directory are used by the application to format its interface or are used as images in this README file. All files except `RUSH_full_color.jpg` were obtained from another open source Plotly Dash app (https://github.com/plotly/dash-sample-apps/tree/main/apps/dash-clinical-analytics/assets.): `Acumin-BdPro.otf`, `base.css`, `clinical-analytics.css`, - `plotly_logo.png`- `resizing.js`
+<details><summary>what_if_fxn.py</summary>
 
-
-- `Acumin-BdPro.otf`: An OpenType font file used by the application. 
-- `base.css` A cascading style sheets (CSS) used by the application. CSS is a stylesheet language used to describe the presentation of a document written in HTML or XML.
-- `clinical-analytics.css` An additional css file.
-- `plotly_logo.png`
-- `RUSH_full_color.jpg`
-- `images_for_README`: A directory containing png files used in this README document.
+Contains `run_whatif(raw_data, pnum, yr)`, a Python translation of the CMS SAS code used for the what-if analyses. It selects the measures used in a given release year, standardizes measures and domains, applies the domain weights, assigns peer groups, and assigns stars by k-means clustering. Measure sets are defined per release year and need to be updated when CMS changes the methodology.
 </details>
 
-<details><summary>Procfile</summary>	
-This extensionless file is necessary for deployment on Heroku, and essentially tells Heroku how to handle web processes using the gunicorn server. The file contains a single line with the following: `web: gunicorn app:server`
+<details><summary>features.py</summary>
+
+Defines `feature_dict`, which groups the dataset's columns (filter categories, date fields, standardized scores, domain weights, measure counts, and the measures and display labels for each domain) for use by the app.
 </details>
 
-<details><summary>requirements.txt</summary>		
-This file lists all of the software libraries needed for the app to run. When deploying the app on Heroku, this file is used to set up the server with the libraries necessary for running the application. When used locally, this file tells pip which libraries need to be installed (i.e., `pip install -r requirements.txt`).
+<details><summary>dataframe_data/</summary>
+
+Pickled pandas DataFrames used by the app:
+
+- `hosp_stars_dat_from_<Month>_<Year>.pkl`: the compiled hospital-level dataset across release years, including the prospective estimates for the upcoming year. The suffix records when the dataset was compiled.
+- `<year>_data_for_whatifs.pkl`: measure-level input data for the what-if analyses, one file for each year offered in the what-if tool.
+</details>
+
+<details><summary>assets/</summary>
+
+Files used to style the interface. All except `RUSH_full_color.jpg` and `custom_styles.css` were obtained from another open-source Plotly Dash app (https://github.com/plotly/dash-sample-apps/tree/main/apps/dash-clinical-analytics/assets).
+
+- `Acumin-BdPro.otf`: an OpenType font file.
+- `base.css`, `clinical-analytics.css`, `custom_styles.css`: cascading style sheets (CSS), which set the appearance of the page.
+- `resizing.js`: a small JavaScript file used for resizing.
+- `plotly_logo.png`, `RUSH_full_color.jpg`: logo images.
+</details>
+
+<details><summary>Procfile</summary>
+
+Required for deployment on Heroku. It tells Heroku to serve the app with the gunicorn web server: `web: gunicorn app:server`
+</details>
+
+<details><summary>requirements.txt</summary>
+
+The Python libraries needed to run the app, used both by Heroku and by `pip install -r requirements.txt` locally.
 </details>
 
 <details><summary>runtime.txt</summary>
-This file is used when setting up the app to run on an online Heroku server. It contains a single line: `python-3.8.12, indicating the version of python to use. 
+
+Tells Heroku which Python version to use: `python-3.12`
 </details>
 
-## Developer 
+## License
+
+MIT License. See `LICENSE`.
+
+## Developer
+
 Kenneth J. Locey, PhD. Senior Clinical Data Scientist. Center for Quality, Safety & Value Analytics. Rush University Medical Center.
