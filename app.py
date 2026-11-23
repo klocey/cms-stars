@@ -6,25 +6,25 @@ import dash_bootstrap_components as dbc
 from dash import dash_table
 from dash.exceptions import PreventUpdate
 
-from sklearn.cluster import KMeans
 import numpy as np
-from scipy import stats
 from scipy.stats import percentileofscore
 
 import pandas as pd
-import plotly
+#import plotly
 import plotly.graph_objects as go
 import plotly.express as px
 import warnings
-import sys
+#import sys
 import re
-import csv
-import math
+#import csv
+#import math
 import random
 import json
 from datetime import datetime
+import textwrap
 
-import dash_draggable
+import what_if_fxn
+import features
 
 #########################################################################################
 ################################# CONFIG APP ############################################
@@ -44,717 +44,45 @@ app.config.suppress_callback_exceptions = True
 server = app.server
 
 
-################################# LOAD DATA ##################################
+# ---------------------------------------------------------------------------
+# Layout geometry for the measure time-series figure.
+#
+# The plot area (the rectangle inside the axes) is held at a fixed
+# TS_PLOT_VW vw tall. Only the pixels reserved ABOVE it for the legend change
+# with the number of traces. The legend is laid out as a fixed grid of
+# TS_LEGEND_COLS columns. Long labels wrap onto extra lines, and each legend
+# row is as tall as its most-wrapped entry.
+# ---------------------------------------------------------------------------
+TS_PLOT_VW          = 30   # fixed plot-area height, in vw (1 vw = 1% of window width)
+TS_LEGEND_COLS      = 3    # legend columns
+TS_LEGEND_ROW_PX    = 22   # px per legend row at Plotly's default 12-px font; tune by eye
+TS_LEGEND_PAD_PX    = 20   # gap between the legend and the top of the plot area
+TS_LEGEND_WRAP_CHARS = 32  # legend text wraps onto a new line after about this many characters
+TS_LEGEND_LINE_PX   = 16   # px added to a legend row for each extra wrapped line; tune by eye
+TS_MARGIN_TOP_BASE  = 10
+TS_MARGIN_BOTTOM    = 60   # x-axis ticks + title; margins no longer auto-expand, so be generous
+TS_MARGIN_LEFT      = 80
+TS_MARGIN_RIGHT     = 40
 
-main_df = pd.read_pickle('dataframe_data/hosp_stars_dat.pkl')
+TS_YLABELS = {
+    'Standardized scores': "Standardized score",
+    'Raw scores':          "Raw score",
+    'Percentiles':         "Percentile",   # relative to all hospitals in the same release year
+}
+
+################################# LOAD DATA ##################################
+month = 'Nov'
+year = '2026'
+main_df = pd.read_pickle('dataframe_data/hosp_stars_dat_from_'+month+'_'+year+'.pkl')
 beds_max = np.nanmax(main_df['Beds'])
 
 what_if_df_2026 = pd.read_pickle('dataframe_data/2026_data_for_whatifs.pkl')
 what_if_df_2027 = pd.read_pickle('dataframe_data/2027_data_for_whatifs.pkl')
 
 ##############################################################################
-
-def run_whatif(raw_data, pnum, yr):
-    
-    def adjust_edge_cases(row, centers, col):
-        """
-        Adjust cluster labels for edge cases, accounting for cases where the distance to the assigned cluster is 0.0.
-        
-        Args:
-        - row: The row of the DataFrame being processed.
-        - centers: Array of cluster centers.
-        - col: The column name of the measure used for clustering.
-        
-        Returns:
-        - Adjusted cluster label.
-        """
-        distances = np.abs(centers - row[col])
-        closest, second_closest = np.partition(distances, 1)[:2]
-        # Check if the closest distance is 0.0; if so, do not adjust the label
-        if closest == 0:
-            return row['cluster'] + 1
-    
-        # If the closest and second closest centers are very close, consider adjusting the label
-        if np.isclose(closest, second_closest, atol=0.0001):  # 'atol' might need adjustment
-            return row['cluster'] + 1  # Increment the cluster label for edge cases
-        else:
-            return row['cluster']
-
-
-    def kmeans_clustering(df, n_clusters=5, col='summary_score'):
-        # Step 1: Initial Data Preparation - Determine quintile medians as initial seeds
-        quintiles = np.percentile(df[col].dropna(),
-                                  [20.0, 40.0, 60.0, 80.0],
-                                  method='interpolated_inverted_cdf', # this is good
-                                  #method='linear',
-                                 )
-        df['grp'] = pd.cut(df[col], bins=[-np.inf] + quintiles.tolist() + [np.inf], labels=False) + 1
-    
-        # Step 2: Initial K-Means Clustering - Compute median for initial seeds
-        initial_seeds = df.groupby('grp')[col].median().dropna().values.reshape(-1, 1)
-    
-        kmeans_initial = KMeans(n_clusters=len(initial_seeds), 
-                                init=initial_seeds, 
-                                n_init=100, 
-                                max_iter=1000, 
-                                random_state=0,
-                                tol=0.000001,
-                                #algorithm='auto',
-                               )
-        kmeans_initial.fit(df[[col]].dropna())
-    
-        # Use cluster centers from initial k-means as seeds for the main clustering
-        main_seeds = kmeans_initial.cluster_centers_
-    
-        # Step 3: Second K-Means Clustering - Main clustering with refined seeds
-        kmeans_main = KMeans(n_clusters=n_clusters, 
-                             init=main_seeds, 
-                             n_init=100, 
-                             max_iter=1000, 
-                             random_state=0,
-                             tol=0.000001,
-                             #algorithm='auto',
-                            )
-        df['cluster'] = kmeans_main.fit_predict(df[[col]].dropna())
-    
-        # Post-clustering adjustment for edge cases
-        centers = kmeans_main.cluster_centers_.flatten()
-        df['cluster'] = df.apply(adjust_edge_cases, centers=centers, col=col, axis=1)
-    
-        # Step 4: Cluster Ordering and Labeling - Order clusters and assign 'star' ratings
-        cluster_means = df.groupby('cluster')[col].mean().sort_values().index
-        cluster_mapping = {old: new for new, old in enumerate(cluster_means, 1)}
-    
-        df['star'] = df['cluster'].map(cluster_mapping)
-        df.drop('cluster', axis=1, inplace=True)
-    
-        return df
-
-    # Define the measures you're interested in
-    rev_measures = ['MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF',
-                    'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP', 'COMP_HIP_KNEE', 
-                    'HAI_1', 'HAI_2', 'HAI_3', 'HAI_4', 'HAI_5', 'HAI_6',
-                    'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN',
-                    'OP_32', 'READM_30_CABG', 'READM_30_COPD', 
-                    'READM_30_HIP_KNEE', 'Hybrid_HWR', 'Hybrid_HWM',
-                    'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22',
-                    'OP_18B', 'OP_8', 
-                    'OP_10','OP_13', 'SAFE_USE_OF_OPIOIDS',
-                   ]
-    
-    measures = [
-        'MORT_30_AMI', 'MORT_30_CABG', 
-        'MORT_30_COPD', 'MORT_30_HF',
-        'MORT_30_PN', 'MORT_30_STK', 
-        'PSI_4_SURG_COMP', 'COMP_HIP_KNEE',
-        'HAI_1', 'HAI_2', 
-        'HAI_3', 'HAI_4', 
-        'HAI_5', 'HAI_6', 
-        'PSI_90_SAFETY', 'EDAC_30_AMI', 
-        'EDAC_30_HF', 'EDAC_30_PN', 
-        'OP_32', 'READM_30_CABG', 
-        'READM_30_COPD', 'READM_30_HIP_KNEE', 
-        'Hybrid_HWR', 
-        'Hybrid_HWM', # new
-        'OP_35_ADM', 
-        'OP_35_ED', 'OP_36', 
-        'O-COMP-1',
-        'O-COMP-2',
-        'O-COMP-3',
-        'O-PATIENT-RATE',
-        'O-PATIENT-REC',
-        'H_COMP_1_LINEAR_SCORE',
-        'H_COMP_2_LINEAR_SCORE',
-        'H_COMP_3_LINEAR_SCORE',
-        'H_COMP_5_LINEAR_SCORE',
-        'H_COMP_6_LINEAR_SCORE',
-        'H_COMP_7_LINEAR_SCORE',
-        'H_CLEAN_LINEAR_SCORE',
-        'H_QUIET_LINEAR_SCORE',
-        'H_RECMND_LINEAR_SCORE',
-        'H_HSP_RATING_LINEAR_SCORE',
-        'IMM_3', 'OP_10', 
-        'OP_13', 'OP_18B', 
-        'OP_22', 'OP_23', 
-        'OP_29', 'OP_8', 
-        'SEP_1', 'SAFE_USE_OF_OPIOIDS',
-        # lost PC-01 and HCP COVID-19
-       ]
-
-    if yr == 2027:
-        measures = [
-            'MORT_30_AMI', 'MORT_30_CABG', 
-            'MORT_30_COPD', 'MORT_30_HF',
-            'MORT_30_PN', 'MORT_30_STK', 
-            'PSI_4_SURG_COMP', 'COMP_HIP_KNEE',
-            'HAI_1', 'HAI_2', 
-            'HAI_3', 'HAI_4', 
-            'HAI_5', 'HAI_6', 
-            'PSI_90_SAFETY', 'EDAC_30_AMI', 
-            'EDAC_30_HF', 'EDAC_30_PN', 
-            'OP_32', 'READM_30_CABG', 
-            'READM_30_COPD', 'READM_30_HIP_KNEE', 
-            'Hybrid_HWR', 
-            'Hybrid_HWM', # new
-            'OP_35_ADM', 
-            'OP_35_ED', 'OP_36', 
-            'O-COMP-1',
-            'O-COMP-2',
-            'O-COMP-3',
-            'O-PATIENT-RATE',
-            'O-PATIENT-REC',
-            'H_COMP_1_LINEAR_SCORE',
-            'H_COMP_2_LINEAR_SCORE',
-            #'H_COMP_3_LINEAR_SCORE',
-            'H_COMP_5_LINEAR_SCORE',
-            'H_COMP_6_LINEAR_SCORE',
-            #'H_COMP_7_LINEAR_SCORE',
-            'H_CLEAN_LINEAR_SCORE',
-            'H_QUIET_LINEAR_SCORE',
-            'H_RECMND_LINEAR_SCORE',
-            'H_HSP_RATING_LINEAR_SCORE',
-            'IMM_3', 'OP_10', 
-            'OP_13', 'OP_18B', 
-            'OP_22', 'OP_23', 
-            'OP_29', 'OP_8', 
-            'SEP_1', 'SAFE_USE_OF_OPIOIDS',
-            # lost PC-01 and HCP COVID-19
-           ]
-        
-    filtered_data = raw_data.filter(items=['PROVIDER_ID']+measures)
-    
-    # remove any measure (column) that is not reported by at least 100 hospitals
-    filtered_data = filtered_data.dropna(axis=1, thresh=101)
-    
-    ls = filtered_data.columns.drop('PROVIDER_ID').tolist()
-    filtered_data = filtered_data.dropna(how='all', subset = ls, axis=0)
-    
-    filtered_measures = list(filtered_data)
-    filtered_measures.remove('PROVIDER_ID')
-    
-    excluded = [item for item in measures if item not in filtered_measures]
-    
-    filtered_data.dropna(how='all', subset=filtered_measures, axis=0, inplace=True)
-    filtered_data = filtered_data[filtered_data.columns[-1:].tolist() + filtered_data.columns[:-1].tolist()]
-
-    ddof = 1
-    zscore_df = filtered_data.copy(deep=True)
-    for m in measures:
-        if m in excluded:
-            continue
-            
-        zscore_df[m] = stats.zscore(zscore_df[m], ddof=ddof, nan_policy='omit')
-    
-    for m in rev_measures:
-        zscore_df[m] = -1*zscore_df[m]
-        
-    final_df = pd.DataFrame(columns=['PROVIDER_ID'])
-    final_df['PROVIDER_ID'] = zscore_df['PROVIDER_ID']
-    
-    # Mortality measures
-    mort_measures = ['MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF', 
-                         'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP', 'Hybrid_HWM']
-    
-    final_df['Std_Outcomes_Mortality_score'] = stats.zscore(zscore_df[mort_measures].mean(axis=1), ddof=ddof, nan_policy='omit')
-    final_df['Outcomes_Mortality_cnt'] = zscore_df[mort_measures].apply(lambda row: row.notna().sum(), axis=1)
-    
-    
-    # Readmission measures
-    readm_measures = ['EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN', 'OP_32',
-                      'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE', 
-                      'Hybrid_HWR', 'OP_35_ADM', 'OP_35_ED', 'OP_36']
-    
-    final_df['Std_Outcomes_Readmission_score'] = stats.zscore(zscore_df[readm_measures].mean(axis=1), ddof=ddof, nan_policy='omit')
-    final_df['Outcomes_Readmission_cnt'] = zscore_df[readm_measures].apply(lambda row: row.notna().sum(), axis=1)
-    
-    
-    # SAFETY measures
-    safety_measures = ['COMP_HIP_KNEE',  'HAI_1', 'HAI_2', 'HAI_3', 'HAI_4', 
-                       'HAI_5', 'HAI_6', 'PSI_90_SAFETY']
-    final_df['Std_Outcomes_Safety_score'] = stats.zscore(zscore_df[safety_measures].mean(axis=1), ddof=ddof, nan_policy='omit')
-    final_df['Outcomes_safety_cnt'] = zscore_df[safety_measures].apply(lambda row: row.notna().sum(), axis=1)
-    
-    
-    # Patient experience measures
-    patexp_measures = [
-        'O-COMP-1',
-        'O-COMP-2',
-        'O-COMP-3',
-        'O-PATIENT-RATE',
-        'O-PATIENT-REC',
-        'H_COMP_1_LINEAR_SCORE',
-        'H_COMP_2_LINEAR_SCORE',
-        'H_COMP_3_LINEAR_SCORE',
-        'H_COMP_5_LINEAR_SCORE',
-        'H_COMP_6_LINEAR_SCORE',
-        'H_COMP_7_LINEAR_SCORE',
-        'H_CLEAN_LINEAR_SCORE',
-        'H_QUIET_LINEAR_SCORE',
-        'H_RECMND_LINEAR_SCORE',
-        'H_HSP_RATING_LINEAR_SCORE',
-    ]
-    if yr == 2027:
-        patexp_measures = [
-            'O-COMP-1',
-            'O-COMP-2',
-            'O-COMP-3',
-            'O-PATIENT-RATE',
-            'O-PATIENT-REC',
-            'H_COMP_1_LINEAR_SCORE',
-            'H_COMP_2_LINEAR_SCORE',
-            #'H_COMP_3_LINEAR_SCORE',
-            'H_COMP_5_LINEAR_SCORE',
-            'H_COMP_6_LINEAR_SCORE',
-            #'H_COMP_7_LINEAR_SCORE',
-            'H_CLEAN_LINEAR_SCORE',
-            'H_QUIET_LINEAR_SCORE',
-            'H_RECMND_LINEAR_SCORE',
-            'H_HSP_RATING_LINEAR_SCORE',
-        ]
-        
-    final_df['Std_PatientExp_score'] = stats.zscore(zscore_df[patexp_measures].mean(axis=1), ddof=ddof, nan_policy='omit')
-    final_df['Patient_Experience_cnt'] = zscore_df[patexp_measures].apply(lambda row: row.notna().sum(), axis=1)
-    
-    
-    # Timely effective care measures
-    proc_measures = ['IMM_3', 'OP_10', 'OP_13', 'OP_18B',
-                         'SAFE_USE_OF_OPIOIDS',
-                         'OP_22', 'OP_23', 'OP_29', 
-                         'OP_8', 
-                         'SEP_1']
-        
-    final_df['Std_Process_score'] = stats.zscore(zscore_df[proc_measures].mean(axis=1), ddof=ddof, nan_policy='omit')
-    final_df['Process_cnt'] = zscore_df[proc_measures].apply(lambda row: row.notna().sum(), axis=1)
-    
-    mort_cnts = final_df['Outcomes_Mortality_cnt'].tolist()
-    safe_cnts = final_df['Outcomes_safety_cnt'].tolist()
-    read_cnts = final_df['Outcomes_Readmission_cnt'].tolist()
-    pate_cnts = final_df['Patient_Experience_cnt'].tolist()
-    proc_cnts = final_df['Process_cnt'].tolist()
-    
-    tot_cnts = []
-    msg_cnts = []
-    grp_cnts = []
-    for i, m in enumerate(mort_cnts):
-        ct = 0
-        ct2 = 0
-        if m > 2:
-            ct += 1
-            ct2 +=1
-        if safe_cnts[i] > 2:
-            ct += 1
-            ct2 += 1
-        if read_cnts[i] > 2:
-            ct += 1
-        if pate_cnts[i] > 2:
-            ct += 1
-        if proc_cnts[i] > 2:
-            ct += 1
-            
-        tot_cnts.append(ct)
-        msg_cnts.append(ct2)
-        if ct == 3:
-            grp_cnts.append('1) # of groups=3')
-        elif ct == 4:
-            grp_cnts.append('2) # of groups=4')
-        elif ct == 5:
-            grp_cnts.append('3) # of groups=5')
-        else:
-            grp_cnts.append('Not grouped')
-    
-    final_df['Total_measure_group_cnt'] = tot_cnts
-    final_df['MortSafe_Group_cnt'] = msg_cnts
-    final_df['cnt_grp'] = grp_cnts
-    
-    
-    # Add standard group measure weights
-    weights_info = {}
-    if yr == 2026 or yr == 2027: # ALL OF THESE WEIGHTS ARE CORRECT
-        final_df['std_weight_PatientExperience'] = 0.22
-        final_df['std_weight_Readmission'] = 0.22
-        final_df['std_weight_Mortality'] = 0.22
-        final_df['std_weight_safety'] = 0.22
-        final_df['std_weight_Process'] = 0.12
-        
-        # Standard weights and their corresponding score columns
-        weights_info = {
-            'Std_PatientExp_score': ('weight_PatientExperience', 0.22),
-            'Std_Outcomes_Readmission_score': ('weight_Outcomes_Readmission', 0.22),
-            'Std_Outcomes_Mortality_score': ('weight_Outcomes_Mortality', 0.22),
-            'Std_Outcomes_Safety_score': ('weight_Outcomes_Safety', 0.22),
-            'Std_Process_score': ('weight_Process', 0.12)
-        }
-    
-    # Function to adjust weights
-    def adjust_weights(row):
-        # Extract scores and check for NaN
-        scores = {score: row[score] for score in weights_info.keys()}
-        non_missing_scores = {k: v for k, v in scores.items() if pd.notnull(v)}
-        
-        # Sum of weights for non-missing scores
-        sum_weights = sum(weights_info[k][1] for k in non_missing_scores.keys())
-        
-        # Assign adjusted weights or 0 if score is missing
-        for score, (new_col, weight) in weights_info.items():
-            if score in non_missing_scores:
-                row[new_col] = weight / sum_weights
-            else:
-                row[new_col] = 0  # Set weight to 0 if score is missing
-        
-        return row
-    
-    # Apply the function to each row
-    final_df = final_df.apply(adjust_weights, axis=1)
-    
-    # Define score columns and their corresponding adjusted weight columns
-    score_columns = [
-        'Std_PatientExp_score',
-        'Std_Outcomes_Readmission_score',
-        'Std_Outcomes_Mortality_score',
-        'Std_Outcomes_Safety_score',
-        'Std_Process_score'
-    ]
-    weight_columns = [
-        'weight_PatientExperience',
-        'weight_Outcomes_Readmission',
-        'weight_Outcomes_Mortality',
-        'weight_Outcomes_Safety',
-        'weight_Process'
-    ]
-    
-    # Calculate weighted average for each row
-    final_df['summary_score'] = final_df.apply(lambda row: sum(row[score] * row[weight] for score, weight in zip(score_columns, weight_columns) if pd.notnull(row[score])), axis=1)
-    
-    final_df = final_df[final_df['cnt_grp'] != 'Not grouped']
-    final_df = final_df[final_df['MortSafe_Group_cnt'] > 0]
-    final_df['report_indicator'] = 1
-    
-    dfg3 = final_df[final_df['cnt_grp'] == '1) # of groups=3']
-    dfg3 = kmeans_clustering(dfg3)
-    dfg4 = final_df[final_df['cnt_grp'] == '2) # of groups=4']
-    dfg4 = kmeans_clustering(dfg4)
-    dfg5 = final_df[final_df['cnt_grp'] == '3) # of groups=5']
-    dfg5 = kmeans_clustering(dfg5)
-    
-    complete_df = pd.concat([dfg3, dfg4, dfg5])
-    
-    if yr == 2026:
-        safety_q1 = complete_df['Std_Outcomes_Safety_score'].quantile(0.25)
-
-        downgrade_mask = (
-            (complete_df['star'] == 5) &
-            (complete_df['Std_Outcomes_Safety_score'] <= safety_q1)
-        )
-
-        complete_df.loc[downgrade_mask, 'star'] = 4
-
-    if yr == 2027:
-        safety_q1 = complete_df['Std_Outcomes_Safety_score'].quantile(0.25)
-
-        downgrade_mask = (
-            (complete_df['star'] >= 2) &
-            (complete_df['Std_Outcomes_Safety_score'] <= safety_q1)
-        )
-
-        complete_df.loc[downgrade_mask, 'star'] -= 1
-        
-    #tdf1 = complete_df[~complete_df['star'].isin([np.nan, float("NaN")])]
-    
-    return complete_df
-
-
-##############################################################################
 ######################## Create Features Dictionary #####################################
 
-feature_dict = {}
-feature_dict['filter categories'] = [
-    'State',
-    'ZIP Code',
-    'County Name',
-    'Hospital Type',
-    'Hospital Ownership',
-    'Emergency Services',
-    'Meets criteria for promoting interoperability of EHRs',
-    #'Hospital overall rating',  # from previous year
-    'cnt_grp',
-    'star',
-    'Beds',
-    ]
 
-feature_dict['date categories'] = [
-    'file_month',
-    'file_year',
-    'Release year',
-    ]
-
-feature_dict['Standardized scores'] = [
-    'Std_Outcomes_Mortality_score',
-    'Std_Outcomes_Readmission_score',
-    'Std_Outcomes_Safety_score',
-    'Std_PatientExp_score',
-    'Std_Process_score', 
-    'summary_score',
-    ]
-
-feature_dict['Stars Domains'] = [
-    'Mortality',
-    'Readmission',
-    'Safety of Care',
-    'Patient Experience',
-    'Timely and Effective Care',
-    ]
-
-feature_dict['Domain weights'] = [
-    'std_weight_PatientExperience',
-    'std_weight_Readmission',
-    'std_weight_Mortality',
-    'std_weight_safety',
-    'std_weight_Process',
-    'weight_PatientExperience',
-    'weight_Outcomes_Readmission',
-    'weight_Outcomes_Mortality',
-    'weight_Outcomes_Safety',
-    'weight_Process',
-    ]
-
-feature_dict['Domain measure counts'] = [
-    'Outcomes_Mortality_cnt',
-    'Outcomes_safety_cnt',
-    'Outcomes_Readmission_cnt',
-    'Patient_Experience_cnt',
-    'Process_cnt',
-    'Total_measure_group_cnt',
-    'MortSafe_Group_cnt',
-    ]
-
-
-feature_dict['Safety of Care'] = [
-    'HAI_1', 'HAI_2',
-    'HAI_3', 'HAI_4',
-    'HAI_5', 'HAI_6',
-    'COMP_HIP_KNEE', 
-    'PSI_90_SAFETY',
-    ]
-
-feature_dict['Safety of Care (std)'] = [
-    'std_HAI_1', 'std_HAI_2', 
-    'std_HAI_3', 'std_HAI_4', 
-    'std_HAI_5', 'std_HAI_6', 
-    'std_COMP_HIP_KNEE', 
-    'std_PSI_90_SAFETY',
-    ]
-
-feature_dict['Safety of Care labels'] = [
-    'CLABSI', 
-    'CAUTI',
-    'SSI Colon', 
-    'SSI Abd. Hysterectomy',
-    'MRSA Bacteremia', 
-    'C. diff. infection',
-    'Hip-Knee Complication rate', 
-    'PSI-90',
-    ]
-
-
-
-feature_dict['Readmission'] = [
-    'READM_30_HOSP_WIDE',
-    'Hybrid_HWR',
-    'READM_30_HIP_KNEE',
-    'EDAC_30_HF',
-    'READM_30_COPD',
-    'EDAC_30_AMI',
-    'EDAC_30_PN',
-    'READM_30_CABG',
-    'OP_32',
-    'OP_35_ADM',
-    'OP_35_ED',
-    'OP_36',
-    ]
-
-feature_dict['Readmission (std)'] = [
-    'std_READM_30_HOSP_WIDE',                                 
-    'std_Hybrid_HWR',
-    'std_READM_30_HIP_KNEE',
-    'std_EDAC_30_HF',
-    'std_READM_30_COPD',
-    'std_EDAC_30_AMI',
-    'std_EDAC_30_PN',
-    'std_READM_30_CABG',
-    'std_OP_32',
-    'std_OP_35_ADM',
-    'std_OP_35_ED',
-    'std_OP_36',
-    ]
-
-feature_dict['Readmission labels'] = [
-    '30-Day readmission rate, Hospital-wide',
-    '30-Day readmission rate, Hospital-wide',
-    #'30-Day hybrid hospital-wide all-cause readmission rate',
-    '30-Day readmission rate, HIP KNEE',
-    'Excess days in Acute Care, HF',
-    '30-Day readmission rate, COPD',
-    'Excess days in Acute Care, AMI',
-    'Excess days in Acute Care, PN',
-    '30-Day readmission rate, CABG',
-    '7-Day visit rate after OP colonoscopy',
-    'Admissions for Patients Receiving OP Chemo',
-    'ED Visits for Patients Receiving OP Chemo',
-    'Hospital Visits after OP Surgery',
-    ]
-
-
-
-feature_dict['Mortality'] = [
-    'Hybrid_HWM',
-    'MORT_30_STK',
-    'MORT_30_PN',
-    'MORT_30_HF',
-    'MORT_30_COPD',
-    'MORT_30_AMI',
-    'MORT_30_CABG',
-    'PSI_4_SURG_COMP',
-    ]
-feature_dict['Mortality (std)'] = [
-    'std_Hybrid_HWM',
-    'std_MORT_30_STK',
-    'std_MORT_30_PN',
-    'std_MORT_30_HF',
-    'std_MORT_30_COPD',
-    'std_MORT_30_AMI',
-    'std_MORT_30_CABG',
-    'std_PSI_4_SURG_COMP',
-    ]
-feature_dict['Mortality labels'] = [
-    'Hospital-Wide All-Cause Risk Standardized Mortality Rate',
-    'STK 30-Day Mortality Rate',
-    'PN 30-Day Mortality Rate',
-    'HF 30-Day Mortality Rate',
-    'COPD 30-Day Mortality Rate',
-    'AMI 30-Day Mortality Rate',
-    'CABG 30-Day Mortality Rate',
-    'PSI-04, Death Rate, Surg. Inpatients w/ STCs',
-    ]
-
-
-feature_dict['Patient Experience'] = [
-    'H_COMP_1_STAR_RATING',
-    'H_COMP_2_STAR_RATING',
-    'H_COMP_3_STAR_RATING',
-    'H_COMP_5_STAR_RATING',
-    'H_COMP_6_STAR_RATING',
-    'H_COMP_7_STAR_RATING',
-    'H_GLOB_STAR_RATING', # H-HSP-RATING + H-RECMND / 2
-    'H_INDI_STAR_RATING', # H-CLEAN-HSP + H-QUIET-HSP / 2
-    'O-COMP-1',
-    'O-COMP-2',
-    'O-COMP-3',
-    'O-PATIENT-RATE',
-    'O-PATIENT-REC',
-    'H_COMP_1_LINEAR_SCORE',
-    'H_COMP_2_LINEAR_SCORE',
-    'H_COMP_3_LINEAR_SCORE',
-    'H_COMP_5_LINEAR_SCORE',
-    'H_COMP_6_LINEAR_SCORE',
-    'H_COMP_7_LINEAR_SCORE',
-    'H_CLEAN_LINEAR_SCORE',
-    'H_QUIET_LINEAR_SCORE',
-    'H_RECMND_LINEAR_SCORE',
-    'H_HSP_RATING_LINEAR_SCORE',
-    ]
-    
-feature_dict['Patient Experience (std)'] = [
-    'std_H_COMP_1_STAR_RATING', 
-    'std_H_COMP_2_STAR_RATING', 
-    'std_H_COMP_3_STAR_RATING', 
-    'std_H_COMP_5_STAR_RATING', 
-    'std_H_COMP_6_STAR_RATING', 
-    'std_H_COMP_7_STAR_RATING', 
-    'std_H_GLOB_STAR_RATING', 
-    'std_H_INDI_STAR_RATING',
-    'std_O-COMP-1',
-    'std_O-COMP-2',
-    'std_O-COMP-3',
-    'std_O-PATIENT-RATE',
-    'std_O-PATIENT-REC',
-    'std_H_COMP_1_LINEAR_SCORE',
-    'std_H_COMP_2_LINEAR_SCORE',
-    'std_H_COMP_3_LINEAR_SCORE',
-    'std_H_COMP_5_LINEAR_SCORE',
-    'std_H_COMP_6_LINEAR_SCORE',
-    'std_H_COMP_7_LINEAR_SCORE',
-    'std_H_CLEAN_LINEAR_SCORE',
-    'std_H_QUIET_LINEAR_SCORE',
-    'std_H_RECMND_LINEAR_SCORE',
-    'std_H_HSP_RATING_LINEAR_SCORE',
-    ]
-
-feature_dict['Patient Experience labels'] = [
-    'Nurse Communication',
-    'Doctor Communication',
-    'Staff responsiveness',
-    'Communication about medicines',
-    'Discharge information',
-    'Care transition',
-    'Overall Rating of Hospital', # H-HSP-RATING + H-RECMND / 2
-    'Cleanliness and Quietness', # H-CLEAN-HSP + H-QUIET-HSP / 2
-    
-    'Hospital cleanliness (OAS)',
-    'Clear and complete information about procedure (OAS)',
-    'Written information and preparation for recovery (OAS)',
-    'Hospital rating (OAS)',
-    'Recommend hospital (OAS)',
-    
-    'Nurse Communication',
-    'Doctor Communication',
-    'Staff responsiveness',
-    'Communication about medicines',
-    'Discharge information',
-    'Care transition',
-    'Hospital cleanliness',
-    'Hospital quietness',
-    'Recommend hospital',
-    'Hospital rating',
-    ]
-
-                                        
-feature_dict['Timely and Effective Care'] = [
-    'OP_8',
-    'OP_10', 'OP_13', 'OP_18B',
-    'OP_22', 'OP_23', 'OP_29',
-    'OP_33', 'OP_30', 'IMM_3',
-    'PC_01', 'SEP_1', 'ED_2B',
-    'HCP_COVID_19',
-    'SAFE_USE_OF_OPIOIDS',
-    ]
-
-feature_dict['Timely and Effective Care (std)'] = [
-    'std_OP_8',
-    'std_OP_10', 'std_OP_13', 'std_OP_18B',
-    'std_OP_22', 'std_OP_23', 'std_OP_29',
-    'std_OP_33', 'std_OP_30', 'std_IMM_3',
-    'std_PC_01', 'std_SEP_1', 'std_ED_2B',
-    'std_HCP_COVID_19',
-    'std_SAFE_USE_OF_OPIOIDS',
-    ]
-
-feature_dict['Timely and Effective Care labels'] = [
-    'OP-8: MRI Lumbar Spine for Low Back Pain',
-    'OP-10: Abdomen CT Use of Contrast Material',
-    'OP-13: Cardiac Imaging for Preop Risk for non-cardiac low-risk surg.',
-    'OP-18b: Median Time from ED Arrival to ED Departure',
-    'OP-22: ED-Patient Left Without Being Seen',
-    'OP-23: Received interp. of head CT/MRI for stroke w/in 45 min of arrival',
-    'OP-29: Endoscopy/Polyp Surv.: appropriate follow-up int.',
-    'OP-33: External Beam Radiotherapy for Bone Metastases',
-    'OP-30: Endoscopy/Polyp Surv.: avoidance of inappropriate use',
-    'IMM-3: Healthcare Personnel Influenza Vaccination',
-    'PC-1: Percent babies elect. del. prior to 39 weeks gestation',
-    'SEP-1: Severe Sepsis and Septic Shock',
-    'ED-2b: Admit decision time to ED depart time, admitted patients',
-    'HCP COVID-19: COVID-19 Vaccination Coverage Among HCP',
-    'Safe use of opioids',
-    ]
 
 
 
@@ -1365,17 +693,7 @@ app.layout = html.Div([
                                 ),
                             
                             
-                            dash_draggable.GridLayout(
-                                id="draggable-1",
-                                clearSavedLayout=True,
-                                children=[
-                                    html.Div(id="data_report_plot6",
-                                             ),
-                                    ],
-                                ncols=11,
-                                nrows=5,        
-                                height=70,
-                                ),
+                            html.Div(id="data_report_plot6"),
                             
                             ],
                         style={
@@ -1532,17 +850,9 @@ app.layout = html.Div([
                                 ),
                             
                             
-                            dash_draggable.GridLayout(
-                                id="draggable-2",
-                                clearSavedLayout=True,
-                                children=[
-                                    html.Div(id="data_report_plot5",
+                            html.Div(id="data_report_plot5",
                                              ),
-                                    ],
-                                ncols=11,
-                                nrows=5,        
-                                height=70,
-                                ),
+                            
                             ],
                         style={
                             'width': '100%',
@@ -3446,9 +2756,9 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
     # Get measures
     measure_ls = []
     if score_type == 'Standardized scores':
-        measure_ls = feature_dict[domain + ' (std)']
+        measure_ls = features.feature_dict[domain + ' (std)']
     elif score_type == 'Raw scores':
-        measure_ls = feature_dict[domain]
+        measure_ls = features.feature_dict[domain]
     
     hosp_scors_LY = []
     hosp_percs_LY = []
@@ -3466,7 +2776,7 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
             perc = round(percentileofscore(ls, i_score, nan_policy='omit'), 1)
             hosp_percs_LY.append(perc)
             
-            ls2 = feature_dict[domain + ' labels']
+            ls2 = features.feature_dict[domain + ' labels']
             labels_ls.append(ls2[ii])
             
             if domain == 'Patient Experience':
@@ -3507,9 +2817,9 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
                 
         measure_ls = []
         if score_type == 'Standardized scores':
-            measure_ls = feature_dict[domain + ' (std)']
+            measure_ls = features.feature_dict[domain + ' (std)']
         elif score_type == 'Raw scores':
-            measure_ls = feature_dict[domain]
+            measure_ls = features.feature_dict[domain]
                     
         hosp_scors_PY = []
         hosp_percs_PY = []
@@ -3530,7 +2840,7 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
                 perc = round(percentileofscore(ls, i_score, nan_policy='omit'), 1)
                 hosp_percs_PY.append(perc)
                 
-                ls2 = feature_dict[domain + ' labels']
+                ls2 = features.feature_dict[domain + ' labels']
                 labels_ls.append(ls2[ii])
                         
                 # get individual measure weight ... somehow
@@ -3693,6 +3003,91 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
     
 
 
+def _wrap(label, width=TS_LEGEND_WRAP_CHARS):
+    """
+    Wrap a legend label at word boundaries so it fits its fixed-width legend
+    column without being cut off. Returns (wrapped_text, n_lines).
+    """
+    lines = textwrap.wrap(str(label), width=width) or ['']
+    return '<br>'.join(lines), len(lines)
+
+
+def _legend_height_px(line_counts, n_cols=TS_LEGEND_COLS):
+    """
+    Height of the legend band. Entries fill rows of n_cols in trace order;
+    each row is as tall as its most-wrapped entry.
+    """
+    if not line_counts:
+        return TS_LEGEND_ROW_PX
+    total = 0
+    for i in range(0, len(line_counts), n_cols):
+        max_lines = max(line_counts[i:i + n_cols])
+        total += TS_LEGEND_ROW_PX + (max_lines - 1) * TS_LEGEND_LINE_PX
+    return total
+
+
+def _measure_label_pairs(domain, score_type):
+    """
+    Return [(column, label), ...] for the selected domain and score type,
+    keeping only columns that exist in main_df.
+    Percentiles are computed from the standardized-score columns.
+    """
+    if score_type == 'Raw scores':
+        key = domain
+    elif score_type in ('Standardized scores', 'Percentiles'):
+        key = domain + ' (std)'
+    else:
+        return []
+
+    measures = features.feature_dict[key]
+    labels = features.feature_dict[domain + ' labels']
+    return [(m, lab) for m, lab in zip(measures, labels) if m in main_df.columns]
+
+
+def _group_by_label(pairs):
+    """
+    Collapse [(column, label), ...] into {label: [column, ...]}, keeping the
+    order in which each label first appears. Columns sharing a label (e.g. the
+    pre- and post-2026 versions of 'Nurse Communication') end up in one list,
+    so they are drawn as a single trace.
+    """
+    groups = {}
+    for m, lab in pairs:
+        groups.setdefault(lab, []).append(m)
+    return groups
+
+
+def _percentile_series(measure, hospital):
+    """
+    Percentile (0-100) of `hospital` on `measure`, ranked against all hospitals
+    with a non-missing value in the same release year.
+    Returns a DataFrame with columns ['Release year', 'y'], sorted by year.
+    """
+    tmp = (
+        main_df[['Release year', 'Name and Num', measure]]
+        .dropna(subset=[measure])
+    )
+    tmp = tmp.assign(
+        y=tmp.groupby('Release year')[measure].rank(pct=True) * 100
+    )
+    return (
+        tmp.loc[tmp['Name and Num'] == hospital, ['Release year', 'y']]
+        .sort_values('Release year')
+    )
+
+
+def _value_series(hosp_df, measure):
+    """
+    Raw or standardized values of `measure` for one hospital.
+    Returns a DataFrame with columns ['Release year', 'y'], sorted by year.
+    """
+    return (
+        hosp_df[['Release year', measure]]
+        .dropna(subset=[measure])
+        .rename(columns={measure: 'y'})
+        .sort_values('Release year')
+    )
+
 
 @app.callback(
     Output("data_report_plot5", "children"),
@@ -3706,154 +3101,119 @@ def update_panel4(hospital, option_hospitals, selected_hosps_btn, stars_peers_bt
 )
 def update_measure_timeseries(hospital, n_clicks1, n_clicks2, domain, score_type):
 
-    if hospital is None:
+    if hospital is None or domain is None or score_type is None:
         return None
 
-
-    set_select = 'Measures group'
-    
-    ctx1 = dash.callback_context
-    jd1 = json.dumps({'triggered': ctx1.triggered,})
-    jd1 = jd1[:150]
-    
-    if 'selected_hosps_btn2' in jd1:
+    # ---------- WHICH BUTTON FIRED ----------
+    # Reads the triggering component ids directly; works across Dash versions.
+    triggered_ids = {
+        t['prop_id'].split('.')[0] for t in dash.callback_context.triggered
+    }
+    if 'selected_hosps_btn3' in triggered_ids:
         set_select = 'Selected hospitals'
-    elif 'stars_peers_btn2' in jd1:
+    else:
         set_select = 'Measures group'
-    
-    if set_select == 'Measures group':
-        pass
-    
-    hosp_df = main_df[main_df['Name and Num'] == hospital].copy()
+    # NOTE: set_select is not yet used below (the original branch was `pass`);
+    # it is retained so the selection logic is ready when you need it.
+
+    hosp_df = main_df[main_df['Name and Num'] == hospital]
     if hosp_df.empty:
         return None
 
-    # Determine measures + labels
-    if score_type == 'Standardized scores':
-        measures = feature_dict[domain + ' (std)']
-    elif score_type == 'Raw scores':
-        measures = feature_dict[domain]
-    elif score_type == 'Percentiles':
-        # percentiles are based on standardized scores in this setup
-        measures = feature_dict[domain + ' (std)']
+    groups = _group_by_label(_measure_label_pairs(domain, score_type))
+    is_pct = (score_type == 'Percentiles')
+    y_hover = "Percentile: %{y:.1f}" if is_pct else "Score: %{y:.3f}"
 
-    labels = feature_dict[domain + ' labels']
-
+    # ---------- TRACES (one per label) ----------
     fig = go.Figure()
+    legend_line_counts = []     # wrapped line count per trace, in trace order
 
-    for m, lab in zip(measures, labels):
+    for lab, cols in groups.items():
 
-        if m not in main_df.columns:
-            continue
+        # Build each column's series separately (percentiles are ranked within
+        # each column and release year), then stitch them into one series.
+        parts = [
+            _percentile_series(m, hospital) if is_pct else _value_series(hosp_df, m)
+            for m in cols
+        ]
+        ts = (
+            pd.concat(parts, ignore_index=True)
+            .sort_values('Release year', kind='stable')
+            # Columns sharing a label are expected to cover different years.
+            # If a year ever appears in more than one, keep the first column's value.
+            .drop_duplicates(subset='Release year', keep='first')
+        )
 
-        # ---------- BUILD TIME SERIES ----------
-        if score_type == 'Percentiles':
+        hover = (
+            f"<b>{lab}</b><br>"
+            "Release year: %{x}<br>"
+            f"{y_hover}"
+            "<extra></extra>"
+        )
 
-            # Compute percentiles relative to all hospitals in each release year
-            tmp = (
-                main_df[['Release year', 'Name and Num', m]]
-                .dropna(subset=[m])
-                .copy()
-            )
-
-            tmp['percentile'] = (
-                tmp
-                .groupby('Release year')[m]
-                .rank(pct=True) * 100
-            )
-
-            ts = (
-                tmp[tmp['Name and Num'] == hospital][['Release year', 'percentile']]
-                .sort_values('Release year')
-            )
-
-            yvalues = ts['percentile']
-            hover = (
-                f"<b>{lab}</b><br>"
-                "Release year: %{x}<br>"
-                "Percentile: %{y:.1f}"
-                "<extra></extra>"
-            )
-
-        else:
-            # Raw or standardized value
-            ts = (
-                hosp_df[['Release year', m]]
-                .dropna(subset=[m])
-                .sort_values('Release year')
-            )
-
-            yvalues = ts[m]
-            hover = (
-                f"<b>{lab}</b><br>"
-                "Release year: %{x}<br>"
-                "Score: %{y:.3f}"
-                "<extra></extra>"
-            )
-
-        if ts.shape[0] < 2:
-            mode = 'markers'
-        else:
-            mode = 'lines+markers'
+        legend_text, n_lines = _wrap(lab)
+        legend_line_counts.append(n_lines)
 
         fig.add_trace(
             go.Scatter(
                 x=ts['Release year'].astype(int),
-                y=yvalues,
-                mode=mode,
-                name=lab,
+                y=ts['y'],
+                mode='markers' if ts.shape[0] < 2 else 'lines+markers',
+                name=legend_text,           # full label, wrapped onto lines
                 connectgaps=False,
-                hovertemplate=hover,
+                hovertemplate=hover,        # full label on one line
             )
         )
 
-    # Axis label
-    if score_type == 'Standardized scores':
-        ylab = "Standardized score"
-    elif score_type == 'Percentiles':
-        ylab = "Percentile"
-        # (relative to all hospitals in same release year)
-    else:
-        ylab = "Raw score"
+    # ---------- GEOMETRY: fixed plot area, variable legend band ----------
+    margin_top = (
+        TS_MARGIN_TOP_BASE
+        + _legend_height_px(legend_line_counts)
+        + TS_LEGEND_PAD_PX
+    )
 
     fig.update_layout(
         paper_bgcolor='#4d4d4d',
+        template="plotly_dark",
         xaxis=dict(
             title="Release year",
             tickmode="linear",
             dtick=1,
         ),
-        yaxis=dict(title=ylab),
-        template="plotly_dark",
-        margin=dict(l=80, r=40, t=60 + 5*len(labels), b=40),
+        yaxis=dict(title=TS_YLABELS.get(score_type, "Score")),
+        margin=dict(
+            l=TS_MARGIN_LEFT,
+            r=TS_MARGIN_RIGHT,
+            t=margin_top,
+            b=TS_MARGIN_BOTTOM,
+            autoexpand=False,       # stop Plotly from growing margins on its own
+        ),
         legend=dict(
             orientation="h",
             yanchor="bottom",
             y=1.02,
             xanchor="left",
             x=0,
+            # Each entry gets a fixed fraction of the plot width -> fixed column grid.
+            # Slightly under 1/N so that exactly N entries fit per row.
+            entrywidth=1 / TS_LEGEND_COLS - 0.005,
+            entrywidthmode="fraction",
+            valign="top",   # align each swatch with the first line of a wrapped label
         ),
     )
 
     # Reference line for standardized scores
     if score_type == 'Standardized scores':
-        fig.add_hline(
-            y=0,
-            line_dash="dot",
-            line_color="white",
-        )
+        fig.add_hline(y=0, line_dash="dot", line_color="white")
 
-    height = str(30 + 1.5*len(labels)) + "vw"
+    # Plot area = TS_PLOT_VW vw exactly; the px term covers legend band + margins.
+    height = f"calc({TS_PLOT_VW}vw + {margin_top + TS_MARGIN_BOTTOM}px)"
 
     return dcc.Graph(
         figure=fig,
         config={"responsive": True},
-        #config={"displayModeBar": False},
-        style={"height": height, 
-               #"width": "50vw",
-               },
+        style={"height": height},
     )
-
 
 
 @app.callback(
@@ -3874,8 +3234,8 @@ def update_domains_timeseries(hospital, score_type, n_clicks):
     if hosp_df.empty:
         return None
 
-    labels = feature_dict['Stars Domains'] + ['Stars Summary Score']
-    measures = feature_dict['Standardized scores']
+    labels = features.feature_dict['Stars Domains'] + ['Stars Summary Score']
+    measures = features.feature_dict['Standardized scores']
     
     fig = go.Figure()
 
@@ -3993,12 +3353,6 @@ def update_domains_timeseries(hospital, score_type, n_clicks):
     )
 
 
-
-
-    
-
-    
-    
 @app.callback(
      [Output("data_report_plot4", "data"),
       Output("data_report_plot4", "columns"),
@@ -4095,6 +3449,16 @@ def update_whatif_table(hospital, n_clicks, yr):
         'SEP_1', 
         'SAFE_USE_OF_OPIOIDS',
         ]
+    if yr == 2027:
+        m5 = [
+            'IMM_3', 'OP_10', 
+            #'OP_13', 
+            'OP_18B',
+            'OP_22', 'OP_23', 'OP_29',
+            #'OP_8', 
+            'SEP_1', 
+            'SAFE_USE_OF_OPIOIDS',
+            ]
     
     rev_measures = [
         'MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF',
@@ -4108,6 +3472,23 @@ def update_whatif_table(hospital, n_clicks, yr):
         'OP_18B', 'OP_8', 'OP_10','OP_13', 
         'SAFE_USE_OF_OPIOIDS',
         ]
+    
+    if yr == 2027:
+        rev_measures = [
+            'MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF',
+            'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP', 'COMP_HIP_KNEE', 
+            'HAI_1', 'HAI_2', 'HAI_3', 'HAI_4', 'HAI_5', 'HAI_6',
+            'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN',
+            'OP_32', 'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE', 
+            'Hybrid_HWR', 
+            'Hybrid_HWM',
+            'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22',
+            'OP_18B', 
+            #'OP_8', 
+            'OP_10',
+            #'OP_13', 
+            'SAFE_USE_OF_OPIOIDS',
+            ]
         
     domains.extend(['Timely & Effective Care']*len(m5))
     measures.extend(m5)
@@ -4148,20 +3529,20 @@ def update_whatif_table(hospital, n_clicks, yr):
         main_df['Release year'] == yr, measures
     ].max().round(3).tolist()
     
-    # Map Measure-ID to Measure Name using feature_dict
+    # Map Measure-ID to Measure Name using features.feature_dict
     measure_names = []
     for m in measures:
         # Check each domain for the measure
         found = False
-        for domain in feature_dict['Stars Domains']:
-            if m in feature_dict[domain]:
-                idx = feature_dict[domain].index(m)
-                measure_names.append(feature_dict[domain + ' labels'][idx])
+        for domain in features.feature_dict['Stars Domains']:
+            if m in features.feature_dict[domain]:
+                idx = features.feature_dict[domain].index(m)
+                measure_names.append(features.feature_dict[domain + ' labels'][idx])
                 found = True
                 break
-            elif m in feature_dict.get(domain + ' (std)', []):
-                idx = feature_dict[domain + ' (std)'].index(m)
-                measure_names.append(feature_dict[domain + ' labels'][idx])
+            elif m in features.feature_dict.get(domain + ' (std)', []):
+                idx = features.feature_dict[domain + ' (std)'].index(m)
+                measure_names.append(features.feature_dict[domain + ' labels'][idx])
                 found = True
                 break
         if not found:
@@ -4233,7 +3614,7 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
     for i, m in enumerate(measures):
         tdf.loc[tdf['PROVIDER_ID'] == pnum, m] = vals[i]
         
-    stars_output_df = run_whatif(tdf, pnum, yr)
+    stars_output_df = what_if_fxn.run_whatif(tdf, pnum, yr)
     
     tdf = stars_output_df[stars_output_df['PROVIDER_ID'] == pnum]
     star = tdf['star'].iloc[0]
@@ -4320,4 +3701,4 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
 
 # Run the server
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', debug = False) # modified to run on linux server
+    app.run(host='0.0.0.0', debug = True) # modified to run on linux server
