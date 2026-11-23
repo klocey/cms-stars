@@ -1,0 +1,13 @@
+# macOS Finder metadata
+.DS_Store
+
+# Jupyter notebook autosave copies
+.ipynb_checkpoints/
+
+# Python bytecode caches
+__pycache__/
+*.pyc
+
+# Local virtual environments
+venv/
+.venv/

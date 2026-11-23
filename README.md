@@ -80,7 +80,22 @@ Listed in `requirements.txt` and installed in step 3 above:
 
 <details><summary>app.py</summary>
 
-The main application file: app configuration, data loading, page layout, and all Dash callbacks (the functions that update the page when a user interacts with it). The compiled dataset loaded at startup is set by the `month` and `year` variables near the top of the file.
+The entry point. It creates the Dash app and the `server` object that Heroku runs (see `Procfile`), builds the page from `app_layout.py`, registers the callbacks by importing `app_callbacks.py`, and starts the app when run with `python app.py`.
+</details>
+
+<details><summary>app_data.py</summary>
+
+Loads the compiled dataset and the what-if input data from `dataframe_data/`, and derives the lists used by the app's controls (hospital types, ownership types, states, and the latest release years). The compiled dataset loaded at startup is set by the `month` and `year` variables in this file.
+</details>
+
+<details><summary>app_layout.py</summary>
+
+Builds the page layout: the sidebar controls (hospital choice and filters), the main panels, and the help pop-ups. `create_layout(app)` returns the layout.
+</details>
+
+<details><summary>app_callbacks.py</summary>
+
+Defines the callbacks, which are the functions that update the page when a user interacts with it, along with their helper functions. Importing the module registers the callbacks with Dash.
 </details>
 
 <details><summary>what_if_fxn.py</summary>
