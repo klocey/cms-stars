@@ -224,7 +224,7 @@ def generate_control_card1():
             dcc.RangeSlider(
                 id='beds1',
                 min=0,
-                max=2500,
+                max=2700,   # matches the 2700 mark and the 'all beds' value
                 step=50,
                 marks={
                         100: '100',
@@ -232,7 +232,7 @@ def generate_control_card1():
                         1000: '1000',
                         1500: '1500',
                         2000: '2000',
-                        2700: '2700',
+                        2700: 'Max',   # the top of the range includes every hospital
                     },
                 value=[0, 2700],
                 ),
@@ -338,9 +338,13 @@ def create_layout(app):
                             comparison_switch("compare-select1",
                                               style={'display': 'inline-block', 'margin-left': '8%', 'verticalAlign': 'bottom'}),
                             
-                            # Which filters are in use (filled in by a callback)
-                            html.Div(id="active-filters",
-                                     style={'fontSize': '13px', 'color': '#555555', 'margin': '10px 0px 0px 1%'}),
+                            # Which filters are in use (filled in by a callback). The outer Div is
+                            # shown only when the switch is on "Compare to Filtered Hospitals".
+                            html.Div(id="active-filters-box",
+                                     style={'display': 'none'},
+                                     children=html.Div(id="active-filters",
+                                                       style={'fontSize': '13px', 'color': '#555555', 'margin': '10px 0px 0px 1%'}),
+                                     ),
                             html.Hr(),
                         
                             dcc.Graph(id="figure1"),
@@ -979,9 +983,11 @@ def create_layout(app):
                                     page_action='none',
                                     sort_action="native",
                                     sort_mode="multi",
+                                    fixed_rows={'headers': True},   # column labels stay visible when scrolling
                                     style_table={
                                         'overflowY': 'auto',   # vertical scroll
                                         'overflowX': 'auto',   # horizontal scroll
+                                        'maxHeight': '60vh',   # the table scrolls within this height
                                         'minWidth': '100%'     # ensures table can expand horizontally
                                     },
                                     style_cell={

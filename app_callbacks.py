@@ -169,16 +169,20 @@ def _describe_selection(values, full, max_listed=4):
 
 @callback(
     Output("active-filters", "children"),
+    Output("active-filters-box", "style"),
     Input("option_hospitals", "children"),
+    Input("compare-select1", "value"),
     State("beds1", "value"),
     State("states-select1", "value"),
     State("hospital_type1", "value"),
     State("control_type1", "value"),
 )
-def update_active_filters(filtered_hospitals, bed_range, states_vals, htype_vals, ctype_vals):
-    """One line describing the filters that define the 'Filtered Hospitals' comparison set."""
+def update_active_filters(filtered_hospitals, compare, bed_range, states_vals, htype_vals, ctype_vals):
+    """One line describing the filters that define the 'Filtered Hospitals' comparison set.
+    It is shown only while the main switch is on 'Compare to Filtered Hospitals'."""
     if filtered_hospitals is None:
         raise PreventUpdate
+    box_style = {'display': 'block'} if compare == 'Selected hospitals' else {'display': 'none'}
     low, high = int(bed_range[0]), int(bed_range[1])
     beds_txt = 'all' if (low <= 0 and high >= 2700) else '{:,}\u2013{:,}'.format(low, high)
     parts = [
@@ -188,7 +192,7 @@ def update_active_filters(filtered_hospitals, bed_range, states_vals, htype_vals
         'Ownership: ' + _describe_selection(ctype_vals, ctypes),
         'Beds: ' + beds_txt,
     ]
-    return '  \u00b7  '.join(parts)
+    return '  \u00b7  '.join(parts), box_style
 
         
 
@@ -225,8 +229,8 @@ def update_output1(value):
     
     v1 = int(value[0])
     v2 = int(value[1])
-    if v2 > 2700:
-        v2 = 2700
+    if v2 >= 2700:   # the top of the slider includes every hospital
+        return 'Number of beds: [{}, Max]'.format(v1)
     value = [v1, v2]
     
     return 'Number of beds: {}'.format(value)
@@ -2121,6 +2125,14 @@ def update_whatif_table(hospital, n_clicks, yr):
         main_df['Release year'] == yr, measures
     ].max().round(3).tolist()
     
+    # --- The hospital's all-time best value for each measure, across all release
+    # years in the data: the highest value if higher is better, otherwise the lowest ---
+    hosp_all_yrs = main_df.loc[main_df['Facility ID'] == pnum, measures]
+    best_vals = []
+    for m, hb in zip(measures, higher_better):
+        v = hosp_all_yrs[m].max() if hb == 'Yes' else hosp_all_yrs[m].min()
+        best_vals.append(None if pd.isna(v) else round(float(v), 6))
+    
     # Map Measure-ID to Measure Name using features.feature_dict
     measure_names = []
     for m in measures:
@@ -2145,10 +2157,11 @@ def update_whatif_table(hospital, n_clicks, yr):
         'Measure-ID': measures,
         'Measure Name': measure_names,
         'Higher is better': higher_better,
-        'Actual value': actual_vals,
         'Min value': mins,
         'Max value': maxs,
-        'What-if value': actual_vals
+        'Actual value': actual_vals,
+        'What-if value': actual_vals,
+        'All-time best': best_vals,
     })
     
     data = df_table.to_dict('records')
