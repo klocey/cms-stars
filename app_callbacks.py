@@ -2,7 +2,7 @@
 interacts with it). They are registered with Dash through the dash.callback
 decorator, so importing this module is enough to register them."""
 
-from dash import callback
+from dash import callback, ctx
 from dash import dcc
 from dash.dependencies import Input, Output, State
 from dash import dash_table
@@ -24,6 +24,9 @@ import textwrap
 
 import what_if_fxn
 import features
+import leverage
+
+leverage.warm_up()   # compute the engine baselines for the improvement path in the background
 
 from app_data import (
     main_df, beds_max, what_if_df_2026, what_if_df_2027, HOSPITALS, beds, states, htypes, ctypes, latest_yr, latest_release_yr,
@@ -73,6 +76,12 @@ def missing_years_message(hospital, yr1, yr2, yrs):
     return None
 
 
+def facility_id(hospital):
+    """Return the Facility ID from a 'NAME (ID)' label, e.g. '140119' or '01014F'."""
+    m = re.search(r'\(([^()]*)\)\s*$', str(hospital))
+    return m.group(1).strip() if m else None
+
+
 def prior_release_year(yr1, yrs):
     """Return the release year that yr1 is compared against when computing deltas.
 
@@ -103,6 +112,7 @@ MODALS = [
     ("modal-what-if-results", "whatif_button",        "close-what-if-results", False),
     ("modal-centered3",       "open-centered3",       "close-centered3",       False),
     ("modal-centered4",       "open-centered4",       "close-centered4",       False),
+    ("modal-leverage",        "open-leverage",        "close-leverage",        True),
 ]
 
 
@@ -1990,12 +2000,15 @@ def update_whatif_table(hospital, n_clicks, yr):
             'H_CLEAN_LINEAR_SCORE', 
             'H_COMP_1_LINEAR_SCORE', 
             'H_COMP_2_LINEAR_SCORE', 
-            #'H_COMP_3_LINEAR_SCORE', 
+            'H_COMP_3_LINEAR_SCORE', 
             'H_COMP_5_LINEAR_SCORE', 
             'H_COMP_6_LINEAR_SCORE', 
             #'H_COMP_7_LINEAR_SCORE', 
+            'H_COMP_8_LINEAR_SCORE', 
+            'H_COMP_9_LINEAR_SCORE', 
+            'H_SYMP_LINEAR_SCORE', 
             'H_HSP_RATING_LINEAR_SCORE', 
-            'H_QUIET_LINEAR_SCORE', 
+            #'H_QUIET_LINEAR_SCORE',   # dropped by the engine for 2027
             'H_RECMND_LINEAR_SCORE',
             'O-COMP-1',
             'O-COMP-2',
@@ -2029,6 +2042,8 @@ def update_whatif_table(hospital, n_clicks, yr):
         'MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF', 
         'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP', 'Hybrid_HWM',
         ]
+    if yr == 2027:   # dropped by the engine (what_if_fxn.py) for 2027
+        m3.remove('PSI_4_SURG_COMP')
     domains.extend(['Mortality']*len(m3))
     measures.extend(m3)
     
@@ -2096,8 +2111,7 @@ def update_whatif_table(hospital, n_clicks, yr):
         else:
             higher_better.append('Yes')
     
-    pnum = re.search(r'\d{6}', hospital)
-    pnum = pnum.group()
+    pnum = facility_id(hospital)
     
     tdf = main_df[main_df['Release year'] == yr]
 
@@ -2212,8 +2226,7 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
     
     df['What-if value'] = df['What-if value'].astype(float)
     
-    pnum = re.search(r'\d{6}', hospital)
-    pnum = pnum.group()
+    pnum = facility_id(hospital)
     
     tdf = None
     if yr == 2026:
@@ -2306,3 +2319,93 @@ def update_whatif_analysis(n_clicks, data, columns, hospital, filtered_hospitals
 
     
     return txt1, txt2, txt3, txt4, txt5
+
+
+##############################   Improvement path   #####################################
+
+@callback(
+    Output("leverage-header", "children"),
+    Output("leverage-current", "children"),
+    Output("target-star-lev", "options"),
+    Output("target-star-lev", "value"),
+    Input("hospital-select1b", "value"),
+    Input("year-select-lev", "value"),
+)
+def update_leverage_targets(hospital, yr):
+    """Header, current rating, and the target ratings above it."""
+    if hospital is None or yr is None:
+        raise PreventUpdate
+    header = "Improvement path: " + hospital
+    pnum = facility_id(hospital)
+    rec = main_df[(main_df['Release year'] == yr) & (main_df['Facility ID'] == pnum)]
+    star = rec['star'].iloc[0] if not rec.empty else np.nan
+    if pd.isna(star):
+        return header, hospital + " has no star rating for " + year_label(yr) + ".", [], None
+    star = int(star)
+    if star >= 5:
+        return header, year_label(yr) + " star rating: 5. There is no higher rating to aim for.", [], None
+    options = [{"label": str(s) + " stars", "value": s} for s in range(star + 1, 6)]
+    return header, year_label(yr) + " star rating: " + str(star), options, star + 1
+
+
+@callback(
+    Output("leverage-summary", "children"),
+    Output("leverage-table", "data"),
+    Output("leverage-table", "columns"),
+    Output("leverage-path-store", "data"),
+    Output("leverage-confirm-text", "children"),
+    Input("leverage-run", "n_clicks"),
+    Input("hospital-select1b", "value"),
+    Input("year-select-lev", "value"),
+    Input("target-star-lev", "value"),
+    prevent_initial_call=True,
+)
+def update_leverage_path(n_clicks, hospital, yr, target):
+    """Find the path when FIND PATH is clicked; a new hospital, year or target clears the old one."""
+    if ctx.triggered_id != "leverage-run":
+        return '', [], [], None, ''
+    if not hospital or yr is None or target is None:
+        return 'Choose a target star rating first.', [], [], None, ''
+    if not facility_id(hospital):
+        return 'The improvement path is not available for ' + hospital + '.', [], [], None, ''
+    data, columns, _, msg = update_whatif_table(hospital, None, yr)
+    if msg:
+        return msg, [], [], None, ''
+    pnum = facility_id(hospital)
+    res = leverage.find_path(hospital, pnum, yr, target, data)
+    if not res['ok']:
+        return res['message'], [], [], None, ''
+    rows = res['rows']
+    summary = ("To reach " + str(res['reached']) + " stars for " + year_label(yr) + ", this path changes " +
+               str(len(rows)) + (" measure" if len(rows) == 1 else " measures") +
+               " (largest move: " + str(res['max_gain']) + " points). " + res['note'])
+    columns = [{'id': c, 'name': c} for c in rows[0].keys()]
+    store = {'hospital': hospital, 'yr': yr, 'target': target, 'targets': res['targets']}
+    return summary, rows, columns, store, ''
+
+
+@callback(
+    Output("leverage-confirm-text", "children", allow_duplicate=True),
+    Input("leverage-confirm", "n_clicks"),
+    State("leverage-path-store", "data"),
+    State("option_hospitals", "children"),
+    prevent_initial_call=True,
+)
+def confirm_leverage_path(n_clicks, store, filtered_hospitals):
+    """Recompute the star rating with the full what-if engine, using the path's target values."""
+    if not store:
+        return 'Find a path first.'
+    data, columns, _, msg = update_whatif_table(store['hospital'], None, store['yr'])
+    if msg:
+        return msg
+    for row in data:
+        if row['Measure-ID'] in store['targets']:
+            row['What-if value'] = store['targets'][row['Measure-ID']]
+    res = update_whatif_analysis(n_clicks, data, columns, store['hospital'], filtered_hospitals or [], store['yr'])
+    star_txt, score_txt = str(res[0]), str(res[1])
+    found = re.match(r'\s*([0-9.]+)\s*Star', star_txt)
+    verdict = ''
+    if found:
+        verdict = (" The target of " + str(store['target']) + " stars is " +
+                   ("reached." if float(found.group(1)) >= store['target'] else "not reached."))
+    return "What-if engine result: " + star_txt + ", " + score_txt + "." + verdict

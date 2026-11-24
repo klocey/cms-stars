@@ -1128,6 +1128,133 @@ def create_layout(app):
                     fade=True,
                     backdrop=True,
                     ),
+
+                # Improvement path: the path of least resistance to a target star rating
+                dbc.Button("Improvement path",
+                           id="open-leverage",
+                            n_clicks=0,
+                            className="custom-button",
+                            style={
+                                'font-size': 14,
+                                'display': 'inline-block',
+                                'vertical-align': 'top',
+                                'margin-left': '3%',
+                                'margin-top': '1%',
+                                'width': '30%',
+                                },
+                           ),
+                dbc.Modal(
+                    [dbc.ModalBody([
+                        html.Div(
+                            children=[
+                                html.H5(id="leverage-header"),
+                                dcc.Markdown(
+                                    "**Choose a target star rating and click FIND PATH.** The app finds a balanced set of "
+                                    "measure improvements that would reach it: similar-sized moves spread across measures, "
+                                    "starting with those that help the score most and that are supported by evidence.\n"
+                                    "* **Size of a move:** the larger of its percentile gain and its change in standard "
+                                    "deviations (1 SD = 34 percentile points), so moves into the extremes count as large. Each "
+                                    "move is at least 5 points and at most 33, or up to 50 where the hospital has held that "
+                                    "percentile before.\n"
+                                    "* The path uses as few measures as it can while keeping moves to about 20 points, and at "
+                                    "most 10 measures unless more are needed.\n"
+                                    "* **Evidence (realistic room)** comes from three references, each shown in this year's "
+                                    "values: the hospital's best standing (percentile) in any year so far; what similar "
+                                    "hospitals (same type, ownership and size) typically achieve; and the standing that the "
+                                    "better-performing 10% of hospitals starting near the same level reached one year later.\n"
+                                    "* Every target is a value hospitals actually reported this year. Click CONFIRM WITH THE "
+                                    "WHAT-IF ENGINE to recompute the star rating with the full methodology (this takes a few seconds)."),
+                                html.Hr(),
+                                html.B(id="leverage-current", style={'fontSize': 16}),
+                                html.Br(),
+                                html.Br(),
+                                dcc.Dropdown(
+                                    id="year-select-lev",
+                                    options=[{"label": year_label(i), "value": i} for i in list(range(latest_release_yr, latest_yr+1))],
+                                    value=latest_yr,
+                                    clearable=False,
+                                    style={'min-width': '170px', 'width': '7vw', 'display': 'inline-block',
+                                           'verticalAlign': 'top'},
+                                ),
+                                dcc.Dropdown(
+                                    id="target-star-lev",
+                                    options=[],
+                                    placeholder='Target star rating',
+                                    clearable=False,
+                                    style={'min-width': '200px', 'display': 'inline-block',
+                                           'verticalAlign': 'top', 'margin-left': '2%'},
+                                ),
+                                dbc.Button("Find path",
+                                           id="leverage-run",
+                                           n_clicks=0,
+                                           className="custom-button",
+                                           style={'display': 'inline-block', 'margin-left': '2%',
+                                                  'verticalAlign': 'top'},
+                                           ),
+                                html.Br(),
+                                html.Br(),
+                                dcc.Loading(
+                                    id="loading-leverage",
+                                    type="default",
+                                    children=[
+                                        html.Div(id="leverage-summary", style={'fontSize': 15, 'margin-bottom': '10px'}),
+                                        dash_table.DataTable(
+                                            id="leverage-table",
+                                            page_action='none',
+                                            fixed_rows={'headers': True},
+                                            style_table={'overflowY': 'auto', 'overflowX': 'auto',
+                                                         'maxHeight': '60vh', 'minWidth': '100%'},
+                                            style_cell={'padding': '10px', 'whiteSpace': 'normal',
+                                                        'textAlign': 'center', 'minWidth': '100px',
+                                                        'width': '140px', 'maxWidth': '300px'},
+                                        ),
+                                    ],
+                                ),
+                                html.Br(),
+                                dbc.Button("Confirm with the what-if engine",
+                                           id="leverage-confirm",
+                                           n_clicks=0,
+                                           className="custom-button",
+                                           style={'display': 'inline-block'},
+                                           ),
+                                dcc.Loading(
+                                    id="loading-leverage-confirm",
+                                    type="default",
+                                    children=[html.Div(id="leverage-confirm-text",
+                                                       style={'fontSize': 15, 'margin-top': '10px'})],
+                                ),
+                                dcc.Store(id="leverage-path-store"),
+                            ],
+                            style={'width': '100%', 'background-color': '#f0f0f0', 'padding': '10px'},
+                        ),
+                        html.Br(),
+                        ],
+                        ),
+                    dbc.ModalFooter(
+                            dbc.Button("Close",
+                                       id="close-leverage",
+                                       className="ml-auto",
+                                       style={"background-color": "#2a8cff",
+                                              'width': '30%',
+                                              'font-size': 14,
+                                              },
+                                       ),
+                            style={"background-color": "#696969",
+                                   "display": "flex",
+                                   "justify-content": "center",
+                                   "align-items": "center",
+                                   },
+                            ),
+                    ],
+                    id="modal-leverage",
+                    is_open=False,
+                    centered=True,
+                    autoFocus=True,
+                    size="xl",
+                    keyboard=True,
+                    fade=True,
+                    backdrop=True,
+                    ),
             
                 ],
             style={'width': '96%', 

@@ -98,6 +98,11 @@ Builds the page layout: the sidebar controls (hospital choice and filters), the 
 Defines the callbacks, which are the functions that update the page when a user interacts with it, along with their helper functions. Importing the module registers the callbacks with Dash.
 </details>
 
+<details><summary>leverage.py</summary>
+
+The analysis behind the "Improvement path" pop-up: for a chosen hospital, year and target star rating, it finds a balanced, prioritized set of measure improvements that would reach the target: similar-sized moves spread across measures (as few as keep moves to about 20 percentile points; at most 10 measures unless more are needed), starting with those that help the summary score most and are supported by evidence. A move's size is the larger of its percentile gain and its change in standard deviations (1 SD = 34 percentile points); moves are at least 5 and at most 33 points, or up to 50 where the hospital has held that percentile before. Evidence comes from the hospital's best standing in any year so far, what similar hospitals typically achieve (median regression), and the standing the better-performing 10% of hospitals starting near the same level reached one year later. Star cutoffs come from the what-if engine's own results (computed in the background at startup). Its domain measure lists must match `what_if_fxn.py`; a built-in check stops the analysis if they don't.
+</details>
+
 <details><summary>what_if_fxn.py</summary>
 
 Contains `run_whatif(raw_data, pnum, yr)`, a Python translation of the CMS SAS code used for the what-if analyses. It selects the measures used in a given release year, standardizes measures and domains, applies the domain weights, assigns peer groups, and assigns stars by k-means clustering. Measure sets are defined per release year and need to be updated when CMS changes the methodology.
