@@ -118,8 +118,10 @@ Pickled pandas DataFrames used by the app:
 
 <details><summary>assets/</summary>
 
-Files used to style the interface. All except `RUSH_full_color.jpg` and `custom_styles.css` were obtained from another open-source Plotly Dash app (https://github.com/plotly/dash-sample-apps/tree/main/apps/dash-clinical-analytics/assets).
+Files used to style the interface. Dash loads the `.css` files here automatically, in alphabetical order. All except `00_bootstrap.min.css`, `01_codepen_bWLwgP.css`, `RUSH_full_color.jpg` and `custom_styles.css` were obtained from another open-source Plotly Dash app (https://github.com/plotly/dash-sample-apps/tree/main/apps/dash-clinical-analytics/assets).
 
+- `00_bootstrap.min.css`: Bootstrap 5.3.3 (https://getbootstrap.com/), the style framework used by the Dash Bootstrap Components (buttons, switches, pop-ups). It is served from here instead of an outside CDN; the `00_` prefix makes it load before the other stylesheets.
+- `01_codepen_bWLwgP.css`: a local copy of the Dash style guide stylesheet (https://codepen.io/chriddyp/pen/bWLwgP.css), which the app previously loaded from codepen. It loads after Bootstrap and before `base.css`, an edited version of the same stylesheet.
 - `Acumin-BdPro.otf`: an OpenType font file.
 - `base.css`, `clinical-analytics.css`, `custom_styles.css`: cascading style sheets (CSS), which set the appearance of the page.
 - `resizing.js`: a small JavaScript file used for resizing.

@@ -9,7 +9,6 @@ Heroku serves `server` (see Procfile: web: gunicorn app:server).
 """
 
 import dash
-import dash_bootstrap_components as dbc
 import pandas as pd
 #import plotly
 import warnings
@@ -18,12 +17,14 @@ import warnings
 ################################# CONFIG APP ############################################
 #########################################################################################
 
-FONT_AWESOME = "https://use.fontawesome.com/releases/v5.10.2/css/all.css"
 
 warnings.filterwarnings('ignore')
 pd.set_option('display.max_columns', None)
 
-external_stylesheets=[dbc.themes.BOOTSTRAP, FONT_AWESOME, 'https://codepen.io/chriddyp/pen/bWLwgP.css']
+# All stylesheets are served from assets/, which Dash loads in alphabetical order:
+# 00_bootstrap.min.css, then 01_codepen_bWLwgP.css, then base.css and the rest.
+# No stylesheets come from outside sites.
+external_stylesheets=[]
 app = dash.Dash(__name__, 
                 external_stylesheets = external_stylesheets,
                 )
