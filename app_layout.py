@@ -506,9 +506,11 @@ def create_layout(app):
                     [dbc.ModalBody([
                         html.Div(
                             children=[
-                                html.H5("Scores across domains"),
+                                html.H5("Scores across domains", style={'color': 'white'}),
                                 dcc.Dropdown(
                                     id='year-select2',
+                                    clearable=False,
+                                    className='dark-dropdown',
                                     options=[{"label": year_label(i), "value": i} for i in list(range(2021, latest_yr+1))],
                                     value=latest_yr,
                                     placeholder='Select a Stars year',
@@ -530,31 +532,32 @@ def create_layout(app):
                                 html.Div(id="data_report_plot2"),
                                 html.Hr(),
                                 html.B(id="text3",
-                                       style={'fontSize':16, 
+                                       style={'fontSize':16, 'color': 'white',
                                               'margin-left':'1%',
                                               },
                                        ),
                             
                                 html.Hr(),
-                                dcc.Dropdown(
-                                    id="score-select2",
-                                    options=[{"label": i, "value": i} for i in ['Percentiles', 'Domain scores']],
-                                    value='Percentiles',
-                                    placeholder='Select a score type',
-                                    optionHeight=50,
-                                    style={
-                                        'width': '250px', 
-                                        'font-size': 16,
-                                        'display': 'inline-block',
-                                        'padding': '0px 30px 0px 20px',
-                                        'margin-left': '2%',
-                                        'margin-top': '1%',
-                                        'margin-bottom': '1%',
-                                        }
+                                # Domain time series, with its header and score-type buttons
+                                # in the same dark container.
+                                html.Div([
+                                    html.H5("Time series",
+                                            style={'color': 'white', 'display': 'block',
+                                                   'padding': '15px 20px 0 20px'}),
+                                    dbc.RadioItems(
+                                        id="score-select2",
+                                        className="btn-group compare-switch",
+                                        inputClassName="btn-check",
+                                        labelClassName="btn btn-outline-primary",
+                                        labelCheckedClassName="active",
+                                        options=[{"label": i, "value": i} for i in ['Percentiles', 'Domain scores']],
+                                        value='Percentiles',
+                                        style={'margin': '10px 0 0 20px'},
+                                        ),
+                                    html.Div(id="data_report_plot6"),
+                                    ],
+                                    style={'backgroundColor': '#4d4d4d'},
                                     ),
-                            
-                            
-                                html.Div(id="data_report_plot6"),
                             
                                 ],
                             style={
@@ -562,7 +565,7 @@ def create_layout(app):
                                 #'display': 'inline-block',
                                 #'border-radius': '15px',
                                 #'box-shadow': '1px 1px 1px grey',
-                                'background-color': '#f0f0f0',
+                                'background-color': '#303030',  # dark theme
                                 #'padding': '10px',
                                 #'margin-bottom': '10px',
                                 },
@@ -570,7 +573,7 @@ def create_layout(app):
                         html.Br(), 
                         ],
                         style={
-                            'background-color': '#f0f0f0',
+                            'background-color': '#303030',  # dark theme
                             },
                         ),
                         dbc.ModalFooter(
@@ -619,95 +622,191 @@ def create_layout(app):
                     [dbc.ModalBody([
                         html.Div(
                             children=[
-                                html.H5("Examine individual measures"),
+                                html.H5("Examine individual measures", style={'color': 'white'}),
                             
                                 comparison_switch("compare-select3", style={'display': 'inline-block'}),
                             
-                                html.Br(),
-                                dcc.Dropdown(
-                                    id='year-select3',
-                                    options=[{"label": year_label(i), "value": i} for i in list(range(2021, latest_yr+1))],
-                                    value=latest_yr,
-                                    placeholder='Select a Stars year',
-                                    optionHeight=50,
-                                    style={
-                                        'min-width': '170px',   # room for the '(predicted)' label
-                                        'display': 'inline-block',
-                                        #'padding': '0px 30px 0px 20px',
-                                        #'verticalAlign': 'top',
-                                        'width': '7vw', 
-                                        'margin-left': '0%',
-                                        },
+                                # Year, domain and score type in one row, vertically centered,
+                                # with a fixed gap between them.
+                                html.Div([
+                                    dcc.Dropdown(
+                                        id='year-select3',
+                                        clearable=False,
+                                        className='dark-dropdown',
+                                        options=[{"label": year_label(i), "value": i} for i in list(range(2021, latest_yr+1))],
+                                        value=latest_yr,
+                                        placeholder='Select a Stars year',
+                                        optionHeight=50,
+                                        style={'width': '170px', 'font-size': 16},  # room for '(predicted)'
+                                        ),
+                                    dcc.Dropdown(
+                                        id='domain-select1',
+                                        clearable=False,
+                                        className='dark-dropdown',
+                                        options=[{"label": i, "value": i} for i in ['Patient Experience', 'Readmission', 'Mortality', 'Safety of Care', 'Timely and Effective Care']],
+                                        value='Patient Experience',
+                                        placeholder='Select a domain',
+                                        optionHeight=50,
+                                        style={'width': '250px', 'font-size': 16},
+                                        ),
+                                    dcc.Dropdown(
+                                        id='score-type1',
+                                        clearable=False,
+                                        className='dark-dropdown',
+                                        options=[{"label": i, "value": i} for i in ['Standardized scores', 'Raw scores']],
+                                        value='Standardized scores',
+                                        placeholder='Select a score type',
+                                        optionHeight=50,
+                                        style={'width': '250px', 'font-size': 16},
+                                        ),
+                                    ],
+                                    style={'display': 'flex', 'flexWrap': 'wrap', 'gap': '20px',
+                                           'alignItems': 'center', 'margin': '1% 0'},
                                     ),
-                            
-                                dcc.Dropdown(
-                                    id='domain-select1',
-                                    options=[{"label": i, "value": i} for i in ['Patient Experience', 'Readmission', 'Mortality', 'Safety of Care', 'Timely and Effective Care']],
-                                    value='Patient Experience',
-                                    placeholder='Select a domain',
-                                    optionHeight=50,
-                                    style={
-                                        'width': '250px', 
-                                        'font-size': 16,
-                                        'display': 'inline-block',
-                                        'padding': '0px 30px 0px 20px',
-                                        'margin-top': '1%',
-                                        }
-                                    ),
-                            
-                                dcc.Dropdown(
-                                    id='score-type1',
-                                    options=[{"label": i, "value": i} for i in ['Standardized scores', 'Raw scores']],
-                                    value='Standardized scores',
-                                    placeholder='Select a score type',
-                                    optionHeight=50,
-                                    style={
-                                        'width': '250px', 
-                                        'font-size': 16,
-                                        'display': 'inline-block',
-                                        'padding': '0px 30px 0px 20px',
-                                        'margin-left': '2%',
-                                        'margin-top': '1%',
-                                        'margin-bottom': '1%',
-                                        }
-                                    ),
-                                #html.Br(),
                                 html.Div(id="data_report_plot3"),
                                 html.Hr(),
-                                html.B(id="text10", style={'fontSize':16}),
-                                html.P(id="text11", style={'fontSize':16}),
+                                html.B(id="text10", style={'fontSize':16, 'color': 'white'}),
+                                html.P(id="text11", style={'fontSize':16, 'color': 'white'}),
                                 html.Hr(),
-                                dcc.Dropdown(
-                                    id="score-select1",
-                                    options=[{"label": i, "value": i} for i in ['Percentiles', 'Standardized scores', 'Raw scores']],
-                                    value='Percentiles',
-                                    placeholder='Select a score type',
-                                    optionHeight=50,
-                                    style={
-                                        'width': '250px', 
-                                        'font-size': 16,
-                                        'display': 'inline-block',
-                                        'padding': '0px 30px 0px 20px',
-                                        'margin-left': '2%',
-                                        'margin-top': '1%',
-                                        'margin-bottom': '1%',
-                                        }
+
+                                # Main line plot, with its score-type buttons in the same dark container.
+                                html.Div([
+                                    html.H5("Time series",
+                                           style={'color': 'white', 'display': 'block',
+                                                  'padding': '15px 20px 0 20px'}),
+                                    dbc.RadioItems(
+                                        id="score-select1",
+                                        className="btn-group compare-switch",
+                                        inputClassName="btn-check",
+                                        labelClassName="btn btn-outline-primary",
+                                        labelCheckedClassName="active",
+                                        options=[{"label": i, "value": i} for i in ['Percentiles', 'Standardized scores', 'Raw scores']],
+                                        value='Percentiles',
+                                        style={'margin': '10px 0 0 20px'},
+                                        ),
+                                    html.Div(id="data_report_plot5"),
+                                    ],
+                                    style={'backgroundColor': '#4d4d4d'},
                                     ),
-                            
-                            
-                                html.Div(id="data_report_plot5",
-                                                 ),
-                            
+
+                                # ---------- Score and volume over time (one measure) ----------
+                                html.Hr(),
+                                html.Div([
+                                    html.H5("Score and volume over time",
+                                            style={'color': 'white', 'display': 'block',
+                                                   'padding': '15px 20px 0 20px'}),
+                                    html.Div([
+                                        dcc.Dropdown(
+                                            id='trend-measure',
+                                            clearable=False,
+                                            className='dark-dropdown',
+                                            options=[],
+                                            placeholder='Select a measure',
+                                            optionHeight=50,
+                                            style={'width': '450px', 'font-size': 16},
+                                            ),
+                                        dbc.RadioItems(
+                                            id='trend-score',
+                                            className="btn-group compare-switch",
+                                            inputClassName="btn-check",
+                                            labelClassName="btn btn-outline-primary",
+                                            labelCheckedClassName="active",
+                                            options=[{"label": i, "value": i} for i in
+                                                     ['Percentiles', 'Standardized scores', 'Raw scores']],
+                                            value='Percentiles',
+                                            ),
+                                        dcc.Dropdown(
+                                            id='trend-x',
+                                            options=[{'label': 'Predicted infections', 'value': 'pred'},
+                                                     {'label': 'Exposure count', 'value': 'vol'}],
+                                            value='pred',
+                                            clearable=False,
+                                            className='dark-dropdown',
+                                            optionHeight=50,
+                                            style={'display': 'none'},  # shown for infection measures only
+                                            ),
+                                        ],
+                                        style={'display': 'flex', 'flexWrap': 'wrap', 'gap': '20px',
+                                               'alignItems': 'center', 'padding': '10px 20px 0 20px'},
+                                        ),
+                                    html.Div(id='trend-plot'),
+                                    html.P(id='trend-note',
+                                           style={'fontSize': 14, 'color': 'white',
+                                                  'padding': '0 20px 15px 20px', 'margin': 0}),
+                                    ],
+                                    style={'backgroundColor': '#4d4d4d'},
+                                    ),
+
+                                # ---------- Funnel plot: score vs. denominator ----------
+                                html.Hr(),
+                                # Header, controls, plot and note in one dark container. The
+                                # dropdowns sit in one row (wrapping if the window is narrow),
+                                # with a fixed gap so they cannot overlap.
+                                html.Div([
+                                html.H5("Score vs. volume",
+                                       style={'color': 'white', 'display': 'block',
+                                              'padding': '15px 20px 0 20px'}),
+                                html.Div([
+                                    dcc.Dropdown(
+                                        id='funnel-measure',
+                                        clearable=False,
+                                        className='dark-dropdown',
+                                        options=[],
+                                        placeholder='Select a measure',
+                                        optionHeight=50,
+                                        style={'width': '450px', 'font-size': 16},
+                                        ),
+                                    dcc.Dropdown(
+                                        id='funnel-year',
+                                        clearable=False,
+                                        className='dark-dropdown',
+                                        options=[],
+                                        placeholder='Select a year',
+                                        optionHeight=50,
+                                        style={'width': '170px', 'font-size': 16},  # room for '(predicted)'
+                                        ),
+                                    dcc.Dropdown(
+                                        id='funnel-score',
+                                        options=[{"label": i, "value": i} for i in
+                                                 ['Percentiles', 'Standardized scores', 'Raw scores']],
+                                        value='Percentiles',
+                                        clearable=False,
+                                        className='dark-dropdown',
+                                        optionHeight=50,
+                                        style={'width': '220px', 'font-size': 16},
+                                        ),
+                                    dcc.Dropdown(
+                                        id='funnel-x',
+                                        options=[{'label': 'Predicted infections', 'value': 'pred'},
+                                                 {'label': 'Exposure count', 'value': 'vol'}],
+                                        value='pred',
+                                        clearable=False,
+                                        className='dark-dropdown',
+                                        optionHeight=50,
+                                        style={'display': 'none'},  # shown for infection measures only
+                                        ),
+                                    ],
+                                    style={'display': 'flex', 'flexWrap': 'wrap', 'gap': '20px',
+                                           'alignItems': 'center', 'padding': '10px 20px 0 20px'},
+                                    ),
+                                html.Div(id='funnel-plot'),
+                                html.P(id='funnel-note',
+                                       style={'fontSize': 14, 'color': 'white',
+                                              'padding': '0 20px 15px 20px', 'margin': 0}),
+                                    ],
+                                    style={'backgroundColor': '#4d4d4d'},
+                                    ),
+
                                 ],
                             style={
                                 'width': '100%',
-                                'background-color': '#f0f0f0',
+                                'background-color': '#303030',  # dark theme
                                 },
                             ),
                         html.Br(),
                         ],
                         style={
-                            'background-color': '#f0f0f0',
+                            'background-color': '#303030',  # dark theme
                             },
                         ),
                         dbc.ModalFooter(

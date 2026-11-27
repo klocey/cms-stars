@@ -42,4 +42,4 @@ app.layout = create_layout(app)
 
 # Run the server
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', debug = False) # modified to run on linux server
+    app.run(host='0.0.0.0', debug = True) # modified to run on linux server

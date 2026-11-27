@@ -14,6 +14,7 @@ from scipy.stats import percentileofscore
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
+from plotly.subplots import make_subplots
 #import sys
 import re
 #import csv
@@ -60,6 +61,55 @@ TS_YLABELS = {
     'Percentiles':         "Percentile",   # relative to all hospitals in the same release year
 }
 
+
+# ---------------------------------------------------------------------------
+# Denominator (volume) columns for each measure, as (column, label, decimals).
+# A measure's score is based on this count, e.g., MORT_30_HF on its index
+# admissions. Infection measures (HAI) have two: predicted infections (the
+# denominator of the standardized infection ratio) and the exposure count.
+# Measures not listed here (e.g., patient surveys) have no denominator data.
+# ---------------------------------------------------------------------------
+_HAI_VOL_LABELS = {1: 'Central-line days', 2: 'Catheter days', 3: 'Colon surgeries',
+                   4: 'Hysterectomies', 5: 'Patient days', 6: 'Patient days'}
+
+DEN_COLUMNS = {f'HAI_{k}': [(f'HAI_{k}_DEN_PRED', 'Predicted infections', 2),
+                            (f'HAI_{k}_DEN_VOL', lab, 0)]
+               for k, lab in _HAI_VOL_LABELS.items()}
+
+for _label, _measures in {
+    'Index admissions':      ['MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF',
+                              'MORT_30_PN', 'MORT_30_STK', 'READM_30_CABG', 'READM_30_COPD',
+                              'READM_30_HIP_KNEE', 'READM_30_HOSP_WIDE', 'EDAC_30_AMI',
+                              'EDAC_30_HF', 'EDAC_30_PN', 'Hybrid_HWR', 'Hybrid_HWM'],
+    'Hip/knee procedures':   ['COMP_HIP_KNEE'],
+    'Eligible discharges':   ['PSI_90_SAFETY', 'PSI_4_SURG_COMP'],
+    'Colonoscopies':         ['OP_32'],
+    'Chemotherapy patients': ['OP_35_ADM', 'OP_35_ED'],
+    'Outpatient surgeries':  ['OP_36'],
+    'Eligible personnel':    ['IMM_3', 'HCP_COVID_19'],
+    'ED visits':             ['OP_18B', 'OP_22'],
+    'Stroke patients':       ['OP_23'],
+    'Eligible patients':     ['OP_29', 'OP_30', 'OP_33'],
+    'Sepsis cases':          ['SEP_1'],
+    'Inpatient encounters':  ['SAFE_USE_OF_OPIOIDS'],
+    'Imaging studies':       ['OP_8', 'OP_10', 'OP_13'],
+    'Deliveries':            ['PC_01'],
+    'Admitted ED patients':  ['ED_2B'],
+}.items():
+    for _m in _measures:
+        DEN_COLUMNS[_m] = [(_m + '_DEN', _label, 0)]
+
+
+# Dark theme for the tables in the "Examine measure domains" and
+# "Examine individual measures" pop-ups.
+# (Cell sizes stay in each table's style_cell; colors are set here.)
+DARK_TABLE_STYLE = dict(
+    style_header={'backgroundColor': '#262626', 'color': 'white', 'fontWeight': 'bold',
+                  'border': '1px solid #696969'},
+    style_data={'backgroundColor': '#4d4d4d', 'color': 'white',
+                'border': '1px solid #696969'},
+    style_filter={'backgroundColor': '#4d4d4d', 'color': 'white'},
+)
 
 ##############################   Helper functions   #####################################
 
@@ -686,6 +736,7 @@ def update_domains_table(hospital, option_hospitals, compare, yr):
             df_table[i] = [np.nan]*4
         
         dashT = dash_table.DataTable(
+            **DARK_TABLE_STYLE,   # dark theme of the "Examine measure domains" pop-up
             data=df_table.to_dict('records'),
             columns=[{'id': c, 'name': c} for c in df_table.columns],
             export_format="csv",
@@ -865,6 +916,7 @@ def update_domains_table(hospital, option_hospitals, compare, yr):
             
             
             dashT = dash_table.DataTable(
+                **DARK_TABLE_STYLE,   # dark theme of the "Examine measure domains" pop-up
                 data=df_table.to_dict('records'),
                 columns=[{'id': c, 'name': c} for c in df_table.columns],
                 export_format="csv",
@@ -969,6 +1021,7 @@ def update_domains_table(hospital, option_hospitals, compare, yr):
             df_table[i] = [np.nan]*4
         
         dashT = dash_table.DataTable(
+            **DARK_TABLE_STYLE,   # dark theme of the "Examine measure domains" pop-up
             data=df_table.to_dict('records'),
             columns=[{'id': c, 'name': c} for c in df_table.columns],
             export_format="csv",
@@ -1156,6 +1209,7 @@ def update_domains_table(hospital, option_hospitals, compare, yr):
             
             
             dashT = dash_table.DataTable(
+                **DARK_TABLE_STYLE,   # dark theme of the "Examine measure domains" pop-up
                 data=df_table.to_dict('records'),
                 columns=[{'id': c, 'name': c} for c in df_table.columns],
                 export_format="csv",
@@ -1260,6 +1314,7 @@ def update_panel4(hospital, option_hospitals, compare, domain, score_type, yr):
         df_table[i] = [np.nan]*4
     
     dashT = dash_table.DataTable(
+        **DARK_TABLE_STYLE,   # dark theme of the "Examine individual measures" pop-up
         data=df_table.to_dict('records'),
         columns=[{'id': c, 'name': c} for c in df_table.columns],
         export_format="csv",
@@ -1505,6 +1560,7 @@ def update_panel4(hospital, option_hospitals, compare, domain, score_type, yr):
     if score_type == 'Standardized scores':  
         
         dashT = dash_table.DataTable(
+            **DARK_TABLE_STYLE,   # dark theme of the "Examine individual measures" pop-up
             data=df_table.to_dict('records'), columns=[{'id': c, 'name': c} for c in df_table.columns],
             export_format="csv", page_action='none', sort_action="native", sort_mode="multi", #filter_action="native",
                     
@@ -1555,6 +1611,7 @@ def update_panel4(hospital, option_hospitals, compare, domain, score_type, yr):
     
     else:
         dashT = dash_table.DataTable(
+            **DARK_TABLE_STYLE,   # dark theme of the "Examine individual measures" pop-up
             data=df_table.to_dict('records'), columns=[{'id': c, 'name': c} for c in df_table.columns],
             export_format="csv", page_action='none', sort_action="native", sort_mode="multi", #filter_action="native",
                     
@@ -1703,6 +1760,70 @@ def _value_series(hosp_df, measure):
     )
 
 
+def _ordinal(n):
+    """1 -> '1st', 2 -> '2nd', 11 -> '11th', 54 -> '54th'."""
+    if 10 <= n % 100 <= 20:
+        return f"{n}th"
+    return f"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th') }"
+
+
+def _observed_infections(df, hai):
+    """
+    Observed infections for infection measure `hai` (e.g., 'HAI_1'), from
+    SIR x predicted infections, rounded to whole infections. Care Compare reports
+    both to 3 decimals; in every year of the data the product falls within 0.23
+    of a whole number, so rounding recovers the observed count. Missing where
+    the SIR is missing.
+    """
+    return (df[hai] * df[hai + '_DEN_PRED']).round()
+
+
+def _den_hover_series(measure, hospital):
+    """
+    Hover text giving `hospital`'s denominator(s) for `measure` in each release
+    year, with the percentile of each denominator. Percentiles rank against all
+    hospitals with a non-missing value of `measure` and of the denominator in the
+    same release year (the same hospitals the line plot's percentiles use, less
+    any without a denominator). `measure` may be a raw or a standardized ('std_')
+    column. A denominator missing for the hospital in a year is shown as
+    'not available' (e.g., OP-10 in 2027, which Care Compare reports without
+    one). Returns a DataFrame with columns ['Release year', 'den_text'];
+    each non-empty den_text starts with '<br>'.
+    """
+    base = measure[4:] if measure.startswith('std_') else measure
+    specs = [s for s in DEN_COLUMNS.get(base, []) if s[0] in main_df.columns]
+    if not specs:
+        # Typed empty frame, so the merge on the (integer) release year still works.
+        return pd.DataFrame({'Release year': pd.Series(dtype='int64'),
+                             'den_text': pd.Series(dtype=object)})
+
+    den_cols = [c for c, _, _ in specs]
+    cols = list(dict.fromkeys(['Release year', 'Name and Num', measure, base] + den_cols))
+    tmp = main_df[cols].dropna(subset=[measure])
+    is_hosp = tmp['Name and Num'] == hospital
+    out = tmp.loc[is_hosp, ['Release year']].copy()
+    out['den_text'] = ''
+
+    # Infection measures: observed infections = SIR x predicted infections.
+    if base.startswith('HAI_'):
+        obs = _observed_infections(tmp.loc[is_hosp], base)
+        out['den_text'] += [
+            '' if pd.isna(o) else f"<br>Observed infections: {o:,.0f}" for o in obs
+        ]
+
+    for col, lab, dec in specs:
+        pct = tmp.groupby('Release year')[col].rank(pct=True) * 100
+        vals = tmp.loc[is_hosp, col]
+        pcts = pct[is_hosp]
+        out['den_text'] += [
+            f"<br>{lab}: not available" if pd.isna(v) else
+            f"<br>{lab}: {v:,.{dec}f} ({_ordinal(int(round(p)))} percentile)"
+            for v, p in zip(vals, pcts)
+        ]
+
+    return out.sort_values('Release year')
+
+
 @callback(
     Output("data_report_plot5", "children"),
     [
@@ -1738,8 +1859,10 @@ def update_measure_timeseries(hospital, compare, domain, score_type):
 
         # Build each column's series separately (percentiles are ranked within
         # each column and release year), then stitch them into one series.
+        # Each part also carries that column's denominator hover text.
         parts = [
-            _percentile_series(m, hospital) if is_pct else _value_series(hosp_df, m)
+            (_percentile_series(m, hospital) if is_pct else _value_series(hosp_df, m))
+            .merge(_den_hover_series(m, hospital), on='Release year', how='left')
             for m in cols
         ]
         ts = (
@@ -1754,6 +1877,7 @@ def update_measure_timeseries(hospital, compare, domain, score_type):
             f"<b>{lab}</b><br>"
             "Release year: %{x}<br>"
             f"{y_hover}"
+            "%{customdata}"         # denominator line(s), or nothing
             "<extra></extra>"
         )
 
@@ -1768,6 +1892,7 @@ def update_measure_timeseries(hospital, compare, domain, score_type):
                 name=legend_text,           # full label, wrapped onto lines
                 connectgaps=False,
                 hovertemplate=hover,        # full label on one line
+                customdata=ts['den_text'].fillna('').tolist(),
             )
         )
 
@@ -1820,6 +1945,296 @@ def update_measure_timeseries(hospital, compare, domain, score_type):
         config={"responsive": True},
         style={"height": height},
     )
+
+
+# ---------------------------------------------------------------------------
+# Funnel plot (score vs. denominator, one measure and one year).
+# Limits are empirical: hospitals are sorted by the denominator and split into
+# bins of equal size; the lines join the 2.5th, 50th and 97.5th percentiles of
+# the score in each bin (plotted at the bin's median denominator).
+# ---------------------------------------------------------------------------
+FUNNEL_MAX_BINS      = 20
+FUNNEL_MIN_BINS      = 5
+FUNNEL_PER_BIN       = 50    # target hospitals per bin
+FUNNEL_MIN_HOSPITALS = 30    # below this, no limits are drawn
+
+
+@callback(
+    [Output('funnel-measure', 'options'),
+     Output('funnel-measure', 'value')],
+    [Input('domain-select1', 'value')],
+    [State('funnel-measure', 'value')],
+)
+def update_funnel_measures(domain, current):
+    """Measures in the domain that have denominator data in some year."""
+    if domain is None:
+        return [], None
+    options = []
+    for m, lab in zip(features.feature_dict[domain], features.feature_dict[domain + ' labels']):
+        specs = DEN_COLUMNS.get(m, [])
+        if (m in main_df.columns and specs and specs[0][0] in main_df.columns
+                and (main_df[m].notna() & main_df[specs[0][0]].notna()).any()):
+            options.append({'label': f"{m}: {lab}", 'value': m})
+    values = [o['value'] for o in options]
+    value = current if current in values else (values[0] if values else None)
+    return options, value
+
+
+@callback(
+    [Output('funnel-year', 'options'),
+     Output('funnel-year', 'value'),
+     Output('funnel-x', 'style')],
+    [Input('funnel-measure', 'value')],
+    [State('funnel-year', 'value')],
+)
+def update_funnel_years(measure, current):
+    """Years with both a score and a denominator; the x-axis choice is shown for infections only."""
+    x_style = {'width': '220px', 'font-size': 16,
+               'display': 'block' if (measure or '').startswith('HAI_') else 'none'}
+    if measure is None:
+        return [], None, x_style
+    den = DEN_COLUMNS[measure][0][0]
+    has = main_df[measure].notna() & main_df[den].notna()
+    yrs = sorted(int(y) for y in main_df.loc[has, 'Release year'].unique())
+    options = [{'label': year_label(y), 'value': y} for y in yrs]
+    value = current if current in yrs else (yrs[-1] if yrs else None)
+    return options, value, x_style
+
+
+@callback(
+    [Output('funnel-plot', 'children'),
+     Output('funnel-note', 'children')],
+    [Input('hospital-select1b', 'value'),
+     Input('funnel-score', 'value'),     # independent of the line plot's score type
+     Input('funnel-measure', 'value'),
+     Input('funnel-year', 'value'),
+     Input('funnel-x', 'value')],
+)
+def update_funnel_plot(hospital, score_type, measure, yr, x_choice):
+
+    if measure is None:
+        return None, "No volume data for this domain."
+    if yr is None or score_type is None:
+        return None, ""
+
+    specs = DEN_COLUMNS[measure]
+    is_hai = measure.startswith('HAI_')
+    x_col, x_lab, x_dec = specs[1] if (is_hai and x_choice == 'vol') else specs[0]
+
+    y_col = measure if score_type == 'Raw scores' else 'std_' + measure
+    if y_col not in main_df.columns:
+        return None, f"No {score_type.lower()} for this measure."
+
+    cols = list(dict.fromkeys(['Name and Num', y_col, measure] + [c for c, _, _ in specs]))
+    d = main_df.loc[main_df['Release year'] == int(yr), cols].dropna(subset=[y_col])
+
+    # Percentiles rank against all hospitals with a score that year, as in the line plot.
+    d = d.assign(y=d[y_col].rank(pct=True) * 100 if score_type == 'Percentiles' else d[y_col])
+    if is_hai:
+        d = d.assign(obs=_observed_infections(d, measure))
+
+    d = d.dropna(subset=[x_col])
+    n_zero = int((d[x_col] <= 0).sum())
+    d = d[d[x_col] > 0]          # a log axis cannot show zero
+    if d.empty:
+        return None, f"No hospitals with a score and a {x_lab.lower()} value in {yr}."
+
+    is_pct = (score_type == 'Percentiles')
+    y_lab = TS_YLABELS.get(score_type, "Score")
+    y_fmt = (lambda v: f"{v:.1f}") if is_pct else (lambda v: f"{v:.3f}")
+
+    # ---------- hover text, one string per hospital ----------
+    def _hover(r):
+        t = f"<b>{r['Name and Num']}</b><br>{y_lab}: {y_fmt(r['y'])}"
+        if is_hai and pd.notna(r['obs']):
+            t += f"<br>Observed infections: {r['obs']:,.0f}"
+        for c, lab, dec in specs:
+            if pd.notna(r[c]):
+                t += f"<br>{lab}: {r[c]:,.{dec}f}"
+        return t
+    d = d.assign(hover=d.apply(_hover, axis=1))
+
+    fig = go.Figure()
+
+    # ---------- empirical limits ----------
+    n = len(d)
+    note = f"{n:,} hospitals with a score and a {x_lab.lower()} value in {year_label(int(yr))}."
+    if n >= FUNNEL_MIN_HOSPITALS:
+        n_bins = int(min(FUNNEL_MAX_BINS, max(FUNNEL_MIN_BINS, n // FUNNEL_PER_BIN)))
+        bins = pd.qcut(d[x_col].rank(method='first'), n_bins, labels=False)
+        g = d.groupby(bins)
+        lim = pd.DataFrame({
+            'x':   g[x_col].median(),
+            'lo':  g['y'].quantile(0.025),
+            'mid': g['y'].median(),
+            'hi':  g['y'].quantile(0.975),
+        })
+        for col, name, dash in [('hi', '97.5th percentile', 'dash'),
+                                ('mid', 'Median', 'solid'),
+                                ('lo', '2.5th percentile', 'dash')]:
+            fig.add_trace(go.Scatter(
+                x=lim['x'], y=lim[col], mode='lines', name=name,
+                line=dict(color='#f0ad4e', dash=dash, width=2),
+                hovertemplate=f"{name}: %{{y:.3f}}<extra></extra>" if not is_pct
+                              else f"{name}: %{{y:.1f}}<extra></extra>",
+            ))
+        note += (f" Lines join the 2.5th, 50th and 97.5th percentiles of scores in {n_bins} "
+                 f"bins of about {n // n_bins} hospitals each, ordered by {x_lab.lower()}.")
+    else:
+        note += f" Too few hospitals (fewer than {FUNNEL_MIN_HOSPITALS}) to draw limits."
+
+    # ---------- hospitals ----------
+    is_sel = d['Name and Num'] == hospital
+    others = d[~is_sel]
+    fig.add_trace(go.Scatter(
+        x=others[x_col], y=others['y'], mode='markers', name='Hospitals',
+        marker=dict(color='#9e9e9e', size=5, opacity=0.6),
+        text=others['hover'], hovertemplate="%{text}<extra></extra>",
+    ))
+    if is_sel.any():
+        sel = d[is_sel]
+        fig.add_trace(go.Scatter(
+            x=sel[x_col], y=sel['y'], mode='markers', name='Selected hospital',
+            marker=dict(color='#00cc96', size=14, line=dict(color='white', width=2)),
+            text=sel['hover'], hovertemplate="%{text}<extra></extra>",
+        ))
+    else:
+        note += " The selected hospital has no value for this measure and year."
+
+    if n_zero:
+        note += f" Not shown: {n_zero:,} hospitals with a {x_lab.lower()} value of 0."
+
+    fig.update_layout(
+        paper_bgcolor='#4d4d4d',
+        template="plotly_dark",
+        xaxis=dict(title=f"{x_lab} (log scale)", type='log'),
+        yaxis=dict(title=y_lab),
+        margin=dict(l=TS_MARGIN_LEFT, r=TS_MARGIN_RIGHT, t=40, b=TS_MARGIN_BOTTOM),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+    )
+    if score_type == 'Standardized scores':
+        fig.add_hline(y=0, line_dash="dot", line_color="white")
+
+    return dcc.Graph(figure=fig, config={"responsive": True},
+                     style={"height": f"calc({TS_PLOT_VW}vw + 100px)"}), note
+
+
+# ---------------------------------------------------------------------------
+# Score and volume over time (one measure, one hospital): the score by year in
+# an upper panel and the denominator by year in a lower panel, sharing the
+# year axis.
+# ---------------------------------------------------------------------------
+def _den_measure_options(domain):
+    """Dropdown options for the measures in `domain` that have denominator data in some year."""
+    options = []
+    for m, lab in zip(features.feature_dict[domain], features.feature_dict[domain + ' labels']):
+        specs = DEN_COLUMNS.get(m, [])
+        if (m in main_df.columns and specs and specs[0][0] in main_df.columns
+                and (main_df[m].notna() & main_df[specs[0][0]].notna()).any()):
+            options.append({'label': f"{m}: {lab}", 'value': m})
+    return options
+
+
+@callback(
+    [Output('trend-measure', 'options'),
+     Output('trend-measure', 'value')],
+    [Input('domain-select1', 'value')],
+    [State('trend-measure', 'value')],
+)
+def update_trend_measures(domain, current):
+    if domain is None:
+        return [], None
+    options = _den_measure_options(domain)
+    values = [o['value'] for o in options]
+    return options, (current if current in values else (values[0] if values else None))
+
+
+@callback(
+    Output('trend-x', 'style'),
+    [Input('trend-measure', 'value')],
+)
+def update_trend_x(measure):
+    """The bar choice (predicted infections or exposure count) is shown for infections only."""
+    return {'width': '220px', 'font-size': 16,
+            'display': 'block' if (measure or '').startswith('HAI_') else 'none'}
+
+
+@callback(
+    [Output('trend-plot', 'children'),
+     Output('trend-note', 'children')],
+    [Input('hospital-select1b', 'value'),
+     Input('trend-measure', 'value'),
+     Input('trend-score', 'value'),
+     Input('trend-x', 'value')],
+)
+def update_trend_plot(hospital, measure, score_type, x_choice):
+
+    if measure is None:
+        return None, "No volume data for this domain."
+    if hospital is None or score_type is None:
+        return None, ""
+
+    specs = DEN_COLUMNS[measure]
+    is_hai = measure.startswith('HAI_')
+    bar_col, bar_lab, bar_dec = specs[1] if (is_hai and x_choice == 'vol') else specs[0]
+
+    y_col = measure if score_type == 'Raw scores' else 'std_' + measure
+    if y_col not in main_df.columns:
+        return None, f"No {score_type.lower()} for this measure."
+
+    hosp_df = main_df[main_df['Name and Num'] == hospital]
+    is_pct = (score_type == 'Percentiles')
+    ts = _percentile_series(y_col, hospital) if is_pct else _value_series(hosp_df, y_col)
+    if ts.empty:
+        return None, "The selected hospital has no values for this measure."
+
+    ts = (ts.merge(_den_hover_series(y_col, hospital), on='Release year', how='left')
+            .merge(hosp_df[['Release year', bar_col]], on='Release year', how='left')
+            .drop_duplicates(subset='Release year', keep='first')
+            .sort_values('Release year'))
+    ts['den_text'] = ts['den_text'].fillna('')
+
+    y_lab = TS_YLABELS.get(score_type, "Score")
+    y_txt = ts['y'].map(lambda v: f"{v:.1f}" if is_pct else f"{v:.3f}")
+    hover = ("<b>Release year: " + ts['Release year'].astype(str) + "</b><br>"
+             + y_lab + ": " + y_txt + ts['den_text'])
+
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                        row_heights=[0.6, 0.4], vertical_spacing=0.06)
+    fig.add_trace(go.Scatter(
+        x=ts['Release year'], y=ts['y'],
+        mode='markers' if ts.shape[0] < 2 else 'lines+markers',
+        name=y_lab, line=dict(color='#3987e5', width=2), marker=dict(size=8),
+        text=hover, hovertemplate="%{text}<extra></extra>",
+        ), row=1, col=1)
+    fig.add_trace(go.Bar(
+        x=ts['Release year'], y=ts[bar_col], name=bar_lab,
+        marker=dict(color='#888780'), width=0.5,
+        text=hover, textposition='none', hovertemplate="%{text}<extra></extra>",
+        ), row=2, col=1)
+
+    if score_type == 'Standardized scores':
+        fig.add_hline(y=0, line_dash="dot", line_color="white", row=1, col=1)
+
+    fig.update_layout(
+        paper_bgcolor='#4d4d4d',
+        template="plotly_dark",
+        showlegend=False,
+        margin=dict(l=TS_MARGIN_LEFT, r=TS_MARGIN_RIGHT, t=20, b=TS_MARGIN_BOTTOM),
+    )
+    fig.update_xaxes(tickmode="linear", dtick=1)
+    fig.update_xaxes(title="Release year", row=2, col=1)
+    fig.update_yaxes(title=y_lab, row=1, col=1)
+    fig.update_yaxes(title=bar_lab, rangemode='tozero', row=2, col=1)
+
+    note = ""
+    n_missing = int(ts[bar_col].isna().sum())
+    if n_missing:
+        note = (f"No {bar_lab.lower()} value for {n_missing} of the {ts.shape[0]} years "
+                "with a score (no bar shown).")
+
+    return dcc.Graph(figure=fig, config={"responsive": True},
+                     style={"height": f"calc({TS_PLOT_VW}vw + 120px)"}), note
 
 
 @callback(

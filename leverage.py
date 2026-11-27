@@ -35,6 +35,7 @@ longer match what_if_fxn.py), no path is shown. Every value shown is checked aga
 the range observed among hospitals that year.
 """
 
+import hashlib
 import threading
 from functools import lru_cache
 
@@ -205,6 +206,31 @@ def _year_basis(yr, signs_key):
                 pct_by_year=pct_by_year, cur_vals=cur_vals)
 
 
+BASELINE_FILE = 'dataframe_data/engine_baselines.pkl'   # made by stars-data-builder's generate_engine_baselines.py
+
+
+def _md5(path):
+    with open(path, 'rb') as f:
+        return hashlib.md5(f.read()).hexdigest()
+
+
+def _load_saved_baselines():
+    """Engine baselines saved by generate_engine_baselines.py, for each year whose what-if pickle
+    and engine (what_if_fxn.py) are the same files the baselines were made from (same md5).
+    Years that don't match, or a missing file, are left out and computed at startup as before."""
+    try:
+        saved = pd.read_pickle(BASELINE_FILE)
+    except FileNotFoundError:
+        return {}
+    fp = saved['fingerprints']
+    if fp.get('what_if_fxn.py') != _md5('what_if_fxn.py'):
+        return {}
+    return {yr: df for yr, df in saved['years'].items()
+            if yr in WHATIF_DATA
+            and fp.get(f'{yr}_data_for_whatifs.pkl') == _md5(f'dataframe_data/{yr}_data_for_whatifs.pkl')}
+
+
+_saved_baselines = _load_saved_baselines()
 _baseline_cache = {}
 _baseline_locks = {y: threading.Lock() for y in WHATIF_DATA}
 
@@ -212,12 +238,15 @@ _baseline_locks = {y: threading.Lock() for y in WHATIF_DATA}
 def _engine_baseline(yr):
     """The what-if engine's results for release year yr on the unchanged data (star cutoffs and the
     Safety of Care bottom-quarter line are taken from these, since paths are confirmed with the engine).
-    Computed once per year; a request that arrives while the background warm-up is computing the same
-    year waits for it instead of computing it a second time."""
+    Taken from the saved file when it matches the data; otherwise computed once per year, and a request
+    that arrives while the background warm-up is computing the same year waits for it instead of
+    computing it a second time."""
     with _baseline_locks[yr]:
         if yr not in _baseline_cache:
-            import what_if_fxn
-            out = what_if_fxn.run_whatif(WHATIF_DATA[yr].copy(), None, yr)
+            out = _saved_baselines.get(yr)
+            if out is None:
+                import what_if_fxn
+                out = what_if_fxn.run_whatif(WHATIF_DATA[yr].copy(), None, yr)
             out = out[['PROVIDER_ID', 'cnt_grp', 'summary_score', 'star', 'Std_Outcomes_Safety_score']].copy()
             out['grp'] = out['cnt_grp'].astype(str).str[0].astype(int)   # '3) # of groups=5' -> 3
             _baseline_cache[yr] = out
@@ -225,9 +254,15 @@ def _engine_baseline(yr):
 
 
 def warm_up():
-    """Compute the engine baselines in a background thread (predicted year first) so path requests don't wait."""
+    """Prepare the engine baselines so path requests don't wait. Years in the saved file are loaded at
+    once; any others are computed in a background thread (predicted year first)."""
     years = sorted(WHATIF_DATA, reverse=True)
-    threading.Thread(target=lambda: [_engine_baseline(y) for y in years], daemon=True).start()
+    for y in years:
+        if y in _saved_baselines:
+            _engine_baseline(y)
+    todo = [y for y in years if y not in _saved_baselines]
+    if todo:
+        threading.Thread(target=lambda: [_engine_baseline(y) for y in todo], daemon=True).start()
 
 
 # ----------------------------------------------------------------------------

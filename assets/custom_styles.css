@@ -221,3 +221,38 @@ html, body {
     border-bottom-left-radius: 0;
     margin-left: -1px;
 }
+
+
+/* === DARK DROPDOWN (Examine individual measures pop-up) === */
+/* Single-select dropdowns: grey box, white text and arrow; dark grey option list. */
+.dark-dropdown .Select-control {
+    background-color: #595959 !important;
+    border: 1px solid #737373 !important;
+    box-shadow: none !important;
+}
+.dark-dropdown .Select-value-label,
+.dark-dropdown .Select-input > input {
+    color: white !important;
+}
+.dark-dropdown .Select-placeholder {
+    color: #d9d9d9 !important;
+}
+.dark-dropdown .Select-arrow {
+    border-top-color: white !important;
+}
+.dark-dropdown .Select.is-open .Select-arrow {
+    border-bottom-color: white !important;
+}
+.dark-dropdown .Select-menu-outer {
+    background-color: #595959 !important;
+    border: 1px solid #737373 !important;
+}
+.dark-dropdown .Select-option,
+.dark-dropdown .VirtualizedSelectOption {
+    background-color: #595959 !important;
+    color: white !important;
+}
+.dark-dropdown .Select-option.is-focused,
+.dark-dropdown .VirtualizedSelectFocusedOption {
+    background-color: #737373 !important;
+}
